@@ -78,11 +78,11 @@ The configuration file contains working directory locations, run paramteres and 
 
 #### Run Parameters
 
-- THREADZ= (integer) the number of threads to use when multi-threading is possible  
-- QUAL= (integer) minimum PHRED base quality  
-- MINLENGTH= (integer) minimum length a fastq read can be trimmed to before throwing it out  
-- INWIN= (integer) the indel window size (bp) for masking SNPS around an indel  
-- MAPQ= (integer) minimum MAPQ score to retain an alignment  
+- THREADZ= (integer) the number of threads to use when multi-threading is possible 
+- QUAL= (integer) minimum PHRED base quality 
+- MINLENGTH= (integer) minimum length a fastq read can be trimmed to before throwing it out 
+- INWIN= (integer) the indel window size (bp) for masking SNPS around an indel 
+- MAPQ= (integer) minimum MAPQ score to retain an alignment 
 
 - MULTICORE= ("on" or "off"). Turn on at your own risk. This will speed up your run by running certain scripts in parallel:
    trimming of fastq files, FASTQC quality scores, and samtools alignment stats. It roughly uses one core per fastq file. This may be      ideal for runs containing small numbers of pools, but may eat up RAM/CPU if you are running > 10 pools at once.  
