@@ -1,4 +1,4 @@
-# PoolParty :umbrella:
+# :fish: PoolParty :umbrella:
 
 ### A Pool-Seq Bioinformatic Pipeline
 
