@@ -1,0 +1,6 @@
+L0636_test_R1_001.fastq
+L0636_test_R2_001.fastq
+L0637_test_R1_001.fastq
+L0637_test_R2_001.fastq
+L0648_test_R1_001.fastq
+L0648_test_R2_001.fastq
