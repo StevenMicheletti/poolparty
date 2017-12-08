@@ -21,9 +21,9 @@ PoolParty is designed to be run on Linux operating systems and primarily uses Un
 
 PoolParty requires unzipped .fastq files and a reference assembly genome. The reference genome must be thoroughly indexed to properly perform alignments and sorting:
 
-> bwa index -a bwtsw  
-> samtools faidx  
-> picard.jar CreateSequenceDictionary  
+> >bwa index -a bwtsw  
+> >samtools faidx  
+> >picard.jar CreateSequenceDictionary  
 
 PoolParty also requires an input file named 'samplelist.txt' which must be placed in the directory containing the fastqs. samplelist.txt is a list containing the file names (one per line) for all of the fastqs you want to include in the run. An example with 2 paired-end fastqs:
 
@@ -38,15 +38,15 @@ The naming convention of the fastq files is essential. The unique ID identifying
 
 PoolParty_base.sh and PoolParty_base.config must be in the same directory. Edit PoolParty_base.config and fill-in dependency and directory locations as well as parameter values. Simple execution of the alignment phase of the pipeline:
 
-> ./PoolParty_base.sh
+> >./PoolParty_base.sh
 
 However, it is recommended to save the run log as a file as it will contain some valuable statistics...
 
-> ./PoolParty_base.sh &> run.log &
+> >./PoolParty_base.sh &> run.log &
 
 or run in the background 
 
-> nohup nice -n 19 ././PoolParty_base.sh &> run.log &
+> >nohup nice -n 19 ././PoolParty_base.sh &> run.log &
 
 ## Processes
 
