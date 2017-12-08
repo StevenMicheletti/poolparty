@@ -137,8 +137,7 @@ FILTERSYNC (file) filter-sync-by-gtf.pl (Part of Popoolation, Perl)
  ##### OUTDIR/reports/aln_report.txt
    Read alignment reports based on the alignment of trimmmed reads
   
- ##### RUNDIR/.log 
-    The run log not only contains run information, but trimming stats, duplicate stats, and alignment stats.
+ ##### RUNDIR/.log  
+   The run log not only contains run information, but trimming stats, duplicate stats, and alignment stats.
     
- 
  ## Analysis scripts
