@@ -34,7 +34,7 @@ PoolParty also requires an input file named 'samplelist.txt' which must be place
 
 The naming convention of the fastq files is essential. The unique ID identifying the library must occur before the first underscore and must match its paired-end mate. 
 
-## Running 
+## Running The Pipeline 
 
 PoolParty_base.sh and PoolParty_base.config must be in the same directory. Edit PoolParty_base.config and fill-in dependency and directory locations as well as parameter values. Simple execution of the alignment phase of the pipeline:
 
