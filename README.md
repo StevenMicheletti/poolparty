@@ -2,7 +2,7 @@
 
 ### A Pool-Seq Bioinformatic Pipeline
 
-PoolParty begins with raw paired-end fastq files, filters them, and formats them appropriately for further analysis while providing some stats along the way. Associated R scripts provide pair-wise analysis tools to.
+PoolParty takes raw paired-end fastq files, filters them, and formats them appropriately for further analysis while providing some stats along the way. Associated R scripts provide pair-wise analysis tools.
 
 ## Prerequistites
 
@@ -21,16 +21,16 @@ Popoolation2- https://sourceforge.net/p/popoolation2/wiki/Main/
 
 PoolParty requires unzipped .fastq files and a reference assembly genome. The reference genome must be thoroughly indexed to properly perform alignments and sorting:
 
-> bwa index -a bwtsw 'Genome.fasta'
-> samtools faidx 'Genome.fasta'
-> java -jar picard.jar CreateSequenceDictionary REFERENCE='Genome.fasta' OUTPUT= 'Genome.fasta'.dict
+> bwa index -a bwtsw  
+> samtools faidx  
+> picard.jar CreateSequenceDictionary  
 
 PoolParty also requires an input file named 'samplelist.txt' which must be placed in the directory containing the fastqs. samplelist.txt is a list containing the file names (one per line) for all of the fastqs you want to include in the run. An example with 2 paired-end fastqs:
 
->Pool1_R1.fastq
->Pool1_R2.fastq
->Pool2_R1.fastq
->Pool2_R2.fastq
+>Pool1_R1.fastq  
+>Pool1_R2.fastq  
+>Pool2_R1.fastq  
+>Pool2_R2.fastq  
 
 The naming convention of the fastq files is essential. The unique ID identifying the library must occur before the first underscore and must match its paired-end mate. 
 
@@ -40,7 +40,7 @@ PoolParty_base.sh and PoolParty_base.config must be in the same directory. Edit 
 
 > ./PoolParty_base.sh
 
-However, it is recommended to save the run log as a file as it will contain some valuable statistics
+However, it is recommended to save the run log as a file as it will contain some valuable statistics...
 
 > ./PoolParty_base.sh &> run.log &
 
@@ -52,16 +52,16 @@ or run in the background
 
 What is the alignment phase doing to your fastqs? 
 
-Quality trimming fastq files (Popoolation)
-Producing quality summaries of trimmed fastqs (fastqc)
-Making a genome index of the reference genome (pyfaidx)
-Aligning trimmed fastq files to genome assembly (bwa mem)
-Removing PCR duplicates and producing discordant and split-end BAMs (samblaster)
-Filtering the aligned BAM files and producing alignment stats (samtools)
-Sorting the BAM files (Picard)
-Combining filtered BAM files into mpileup (samtools)
-Identifying in/del regions in mpileup (Popoolation)
-Creating sync file with in/del regions masked (Popoolation)
+Quality trimming fastq files (Popoolation)  
+Producing quality summaries of trimmed fastqs (fastqc)  
+Making a genome index of the reference genome (pyfaidx)  
+Aligning trimmed fastq files to genome assembly (bwa mem)  
+Removing PCR duplicates and producing discordant and split-end BAMs (samblaster)  
+Filtering the aligned BAM files and producing alignment stats (samtools)  
+Sorting the BAM files (Picard)  
+Combining filtered BAM files into mpileup (samtools)  
+Identifying in/del regions in mpileup (Popoolation)  
+Creating sync file with in/del regions masked (Popoolation)  
 
 ## Editing the .config file
 
@@ -69,48 +69,57 @@ The configuration file contains working directory locations, run paramteres and 
 
 #### Directories and inputs
 
-INDIR = (dir) the input directory that contains unzipped fastq files. 'samplelist.txt' must also be here.
-OUTDIR = (dir) the base directory that contains output files.
-RUNDIR =(dir) the directory where you are running the bash script from.
-OUTPOP = (string) the unique prefix name for your population output files.
+INDIR = (dir) the input directory that contains unzipped fastq files. 'samplelist.txt' must also be here  
+OUTDIR = (dir) the base directory that contains output files  
+RUNDIR =(dir) the directory where you are running the bash script from  
+OUTPOP = (string) the unique prefix name for your population output files  
 GENOME = (file) the location and name of the fasta genome file
-SCAHEAD = (string) the prefix that identifies unanchored scaffolds in the genoem assembly. Usually "scaff" or the like. 
+SCAHEAD = (string) the prefix that identifies unanchored scaffolds in the genoem assembly. Usually "scaff" or the like  
 
 #### Run Parameters
 
-THREADZ= (integer) the number of threads to use when parallelization is possible
-QUAL= (integer) minimum PHRED base quality
-MINLENGTH= (integer) minimum length a fastq read can be trimmed to before throwing it out
-INWIN= (integer) the indel window size (bp) for masking SNPS around an indel.
-MAPQ= (integer) minimum MAPQ score to retain an alignment
+THREADZ= (integer) the number of threads to use when parallelization is possible  
+QUAL= (integer) minimum PHRED base quality  
+MINLENGTH= (integer) minimum length a fastq read can be trimmed to before throwing it out  
+INWIN= (integer) the indel window size (bp) for masking SNPS around an indel  
+MAPQ= (integer) minimum MAPQ score to retain an alignment  
 
 MULTICORE= ("on" or "off"). Turn on at your own risk. This will speed up your run by running certain scripts in parallel:
-   trimming of fastq files, FASTQC quality scores, and samtools alignment stats. It roughly uses one core per fastq file. This may be      ideal for runs containing small numbers of pools, but may eat up RAM/CPU if you are running > 10 pools at once.
+   trimming of fastq files, FASTQC quality scores, and samtools alignment stats. It roughly uses one core per fastq file. This may be      ideal for runs containing small numbers of pools, but may eat up RAM/CPU if you are running > 10 pools at once.  
    
 #### Dependency Locations
 Identify the location and names of the executables / scripts.  If you've made programs executable across the whole system you don't need to include the directory.
 
-FAIDX (file) faidx
-FASTQC (file) fastqc
-BWA (file) bwa
-SAMBLASTER (file) samblaster
-SAMTOOLS (file) samtools
-PICARDTOOLS (file) picard.jar (Picard Tools, Java)
-POPTRIM (file) trim-fastq.pl (Part of Popoolation, Perl)
-INDELREG= (file) identify-indel-regions.pl (Part of Popoolation, Perl)
-MP2SYNC (file) mpileup2sync.jar (Part of Popoolation, Java)
-FILTERSYNC (file) filter-sync-by-gtf.pl (Part of Popoolation, Perl)
+FAIDX (file) faidx  
+FASTQC (file) fastqc  
+BWA (file) bwa  
+SAMBLASTER (file) samblaster  
+SAMTOOLS (file) samtools  
+PICARDTOOLS (file) picard.jar (Picard Tools, Java)  
+POPTRIM (file) trim-fastq.pl (Part of Popoolation, Perl)  
+INDELREG= (file) identify-indel-regions.pl (Part of Popoolation, Perl)  
+MP2SYNC (file) mpileup2sync.jar (Part of Popoolation, Java)  
+FILTERSYNC (file) filter-sync-by-gtf.pl (Part of Popoolation, Perl)  
 
 ## Output files and directories
 Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
 
-OUTDIR/trimmed/trim_1 : Quality trimmed versions of the input fastq files. These are what get aligned to the genome assembly
-OUTDIR/OUTPOP_prefixes.txt : The prefix names (Library ID) of your libraries for this run.
+OUTDIR/trimmed/trim_1 : Quality trimmed versions of the input fastq files. These are what get aligned to the genome assembly 
+
+OUTDIR/OUTPOP_prefixes.txt : The prefix names (Library ID) of your libraries for this run 
+
 OUTDIR/OUTPOP_CHRbp.txt : Contains the end position and start position (would should be 1) in basepairs for each anchored chromosome.
-OUTDIR/quality/fastqc : fastqc quality summaries for trimmed reads
-OUTDIR/BAM/BAM_2 : Aligned, MAPQ filtered, and coordinate sorted BAM files.
-OUTDIR/BAM/BAM_3 : Filtered BAM_2. All discordant, split-end, unpaired reads are filtered. 
-OUTDIR/BAM/split.sam : split-end alignments produced by samblaster. Important if running SV-analysis such as LUMPY. 
-OUTDIR/BAM/disc.sam : discordant alignments produced by samblaster. Important if running SV-analysis such as LUMPY. 
-OUTDIR/OUTPOP.mpileup : Combined BAM_3 files. Order of columns is the same as in the order pools are listed in the prefix file
-OUTDIR/OUTPOP_indel.sync : Sync format with indel regions masked. Used for downstream analyses. 
+
+OUTDIR/quality/fastqc : fastqc quality summaries for trimmed reads  
+
+OUTDIR/BAM/BAM_2 : Aligned, MAPQ filtered, and coordinate sorted BAM files  
+
+OUTDIR/BAM/BAM_3 : Filtered BAM_2. All discordant, split-end, unpaired reads are filtered   
+
+OUTDIR/BAM/split.sam : split-end alignments produced by samblaster. Important if running SV-analysis such as LUMPY
+
+OUTDIR/BAM/disc.sam : discordant alignments produced by samblaster. Important if running SV-analysis such as LUMPY  
+
+OUTDIR/OUTPOP.mpileup : Combined BAM_3 files. Order of columns is the same as in the order pools are listed in the prefix file  
+
+OUTDIR/OUTPOP_indel.sync : Sync format with indel regions masked. Used for downstream analyses  
