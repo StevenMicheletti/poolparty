@@ -2,7 +2,7 @@
 
 ### A Pool-Seq Bioinformatic Pipeline
 
-PoolParty takes raw paired-end fastq files, filters them, and formats them appropriately for further analysis while providing some stats along the way. Associated R scripts provide pair-wise analysis tools.
+PoolParty takes raw paired-end fastq files, filters them, and formats them appropriately for further analysis while providing some stats along the way. Associated R scripts perform pair-wise analyses
 
 ## Prerequistites
 
