@@ -6,7 +6,7 @@ PoolParty takes raw paired-end fastq files, filters them, and formats them appro
 
 ## Prerequistites
 
-PoolParty is designed to be run on Linux operating systems and primarily uses Unix tools. Because it coordinates the execution of multiple packages there are number of dependencies that must be installed prior to running. With the use of diverse packages, the latest versions of Java, Perl, and Python must be installed.
+PoolParty is designed to be run on Linux operating systems and primarily uses Unix tools. Because it coordinates the execution of multiple packages there are number of dependencies that must be installed prior to running. With the use of diverse packages, the latest versions of Java, Perl, and Python must be installed.The required packages for PoolParty are:
 
 - Burrows-Wheeler Aligner (BWA) - http://bio-bwa.sourceforge.net/  
 - FASTQC - https://www.bioinformatics.babraham.ac.uk/projects/fastqc/  
