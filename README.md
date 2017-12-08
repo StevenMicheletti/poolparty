@@ -25,7 +25,7 @@ PoolParty requires unzipped .fastq files and a reference assembly genome. The re
 > $ samtools faidx  
 > $ picard.jar CreateSequenceDictionary  
 
-PoolParty also requires an input file named 'samplelist.txt' which must be placed in the directory containing the fastqs. samplelist.txt is a list containing the file names (one per line) for all of the fastqs you want to include in the run. An example with 2 paired-end fastqs:
+PoolParty also requires an input file named 'samplelist.txt' which must be placed in the directory containing the fastqs. samplelist.txt is a list containing the file names (one per line) for all of the fastqs you want to include in the run. An example with 2 paired-end libraries:
 
 >Pool1_R1.fastq  
 >Pool1_R2.fastq  
@@ -40,7 +40,7 @@ PoolParty_base.sh and PoolParty_base.config must be in the same directory. Edit 
 
 > $ ./PoolParty_base.sh
 
-However, it is recommended to save the run log as a file as it will contain some valuable statistics...
+However, it is recommended to save the log as it will contain some valuable statistics...
 
 > $ ./PoolParty_base.sh &> run.log &
 
@@ -78,7 +78,7 @@ The configuration file contains working directory locations, run paramteres and 
 
 #### Run Parameters
 
-- THREADZ= (integer) the number of threads to use when parallelization is possible  
+- THREADZ= (integer) the number of threads to use when multi-threading is possible  
 - QUAL= (integer) minimum PHRED base quality  
 - MINLENGTH= (integer) minimum length a fastq read can be trimmed to before throwing it out  
 - INWIN= (integer) the indel window size (bp) for masking SNPS around an indel  
