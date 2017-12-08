@@ -138,7 +138,7 @@ Identify the location and names of the executables / scripts.  If you've made pr
  - Read alignment reports based on the alignment of trimmmed reads
   
 - ##### RUNDIR/.log  
- - The run log not only contains run information, but trimming stats, duplicate stats, and alignment stats.
+ -  The run log not only contains run information, but trimming stats, duplicate stats, and alignment stats.
     
  ## Analysis scripts
 
