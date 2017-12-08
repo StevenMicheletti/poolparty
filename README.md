@@ -105,37 +105,37 @@ Identify the location and names of the executables / scripts.  If you've made pr
 - Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
 
 - ##### OUTDIR/trimmed/trim_1  
- - Quality trimmed versions of the input fastq files. These are what get aligned to the genome assembly 
+  - Quality trimmed versions of the input fastq files. These are what get aligned to the genome assembly 
 
 - ##### OUTDIR/OUTPOP_prefixes.txt  
- - The prefix names (Library ID) of your libraries for this run 
+  - The prefix names (Library ID) of your libraries for this run 
 
 - ##### OUTDIR/OUTPOP_CHRbp.txt  
- - Contains the end position and start position (would should be 1) in basepairs for each anchored chromosome.
+  - Contains the end position and start position (would should be 1) in basepairs for each anchored chromosome.
 
 - ##### OUTDIR/quality/fastq  
- - fastqc quality summaries for trimmed reads  
+  - fastqc quality summaries for trimmed reads  
 
 - ##### OUTDIR/BAM/BAM_2  
- - Aligned, MAPQ filtered, and coordinate sorted BAM files  
+  - Aligned, MAPQ filtered, and coordinate sorted BAM files  
 
 - ##### OUTDIR/BAM/BAM_3  
- - Filtered BAM_2. All discordant, split-end, unpaired reads are filtered   
+  - Filtered BAM_2. All discordant, split-end, unpaired reads are filtered   
 
 - ##### OUTDIR/BAM/split.sam  
- - split-end alignments produced by samblaster. Important if running SV-analysis such as LUMPY
+  - split-end alignments produced by samblaster. Important if running SV-analysis such as LUMPY
 
 - ##### OUTDIR/BAM/disc.sam  
- - discordant alignments produced by samblaster. Important if running SV-analysis such as LUMPY  
+  - discordant alignments produced by samblaster. Important if running SV-analysis such as LUMPY  
 
 - ##### OUTDIR/OUTPOP.mpileup  
- - Combined BAM_3 files. Order of columns is the same as in the order pools are listed in the prefix file  
+  - Combined BAM_3 files. Order of columns is the same as in the order pools are listed in the prefix file  
 
 - ##### OUTDIR/OUTPOP_indel.sync  
- - Sync format with indel regions masked. Used for downstream analyses  
+  - Sync format with indel regions masked. Used for downstream analyses  
 
 - ##### OUTDIR/reports/aln_report.txt
- - Read alignment reports based on the alignment of trimmmed reads
+  - Read alignment reports based on the alignment of trimmmed reads
   
 - ##### RUNDIR/.log
   - The run log not only contains run information, but trimming stats, duplicate stats, and alignment stats.
