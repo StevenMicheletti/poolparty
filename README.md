@@ -101,7 +101,7 @@ Identify the location and names of the executables / scripts.  If you've made pr
 - FILTERSYNC (file) filter-sync-by-gtf.pl (Part of Popoolation, Perl)  
 
 ## Output files and directories
-- Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
+Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
 
 - ##### OUTDIR/trimmed/trim_1  
   - Quality trimmed versions of the input fastq files. These are what get aligned to the genome assembly 
