@@ -142,3 +142,8 @@ Many files will be produced during the alignment phase. Ensure you have enough s
  ## Analysis scripts
 
 - Coming soon
+
+### PP_AF.R
+- This R function (ppaf)  takes a .sync file and coverts it into an allele frequency table. It additionally will remove and produce a list of genomic positions failing minor allele frequency thresholds. If desired, a coverage table of the variant sites for each population/pool can also be produced.
+
+
