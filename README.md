@@ -141,9 +141,12 @@ Many files will be produced during the alignment phase. Ensure you have enough s
     
  ## Analysis scripts
 
-- Coming soon
 
 ### PP_AF.R
-- This R function (ppaf)  takes a .sync file and coverts it into an allele frequency table. It additionally will remove and produce a list of genomic positions failing minor allele frequency thresholds. If desired, a coverage table of the variant sites for each population/pool can also be produced.
+- This R function (ppaf)  takes a .sync file and coverts it into an allele frequency table. It additionally will remove and produce a list of genomic positions failing minor allele frequency thresholds. If desired, a coverage table of the variant sites for each population/pool can also be produced. It is highly recommended that the .sync file be initially filtered by variant sites. 
+
+### PP_NJ.R
+
+- This R function (ppnj) uses an allele frequency table to generate neighbor-joining trees. There are many options to manipulate frequency data. High allele frequency positions (putative outliers) can be removed, and a windowed approach can be used to reduce over-representation of regions with high SNP density. SNP density can also be calculated for the given window size. Multiple genetic distances can be used to create neighbor-joining trees.
 
 
