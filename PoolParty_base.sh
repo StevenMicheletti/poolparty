@@ -2,7 +2,7 @@
 
 #PoolParty_base_V1.0
 #By Steven Micheletti
-#12/7/17
+#12/17/17
 
 #Must have configuration file in same directory
 source $PWD/PoolParty_base.config
@@ -35,6 +35,13 @@ fi
  	 echo 'File "samplelist.txt" is not there, aborting.'
    	 exit
 		fi
+		
+#Check for index file, quit if it does not exist
+	if [[ ! -f ${GENOME}.fai ]] ; then
+ 	 echo '${GENOME}.fai index file is missing, aborting.'
+   	 exit
+		fi
+
 
 #Sort sample list to get mate pairs in correct order
 	sort -f $INDIR/"samplelist.txt" > $INDIR/"samplelist.tmp" && mv $INDIR/"samplelist.tmp" $INDIR/"samplelist.txt"
@@ -67,7 +74,7 @@ fi
 	
 #Get anchored chromosome lengths in bp. Prints a copy to the rundir
 	echo "Creating genome anchored index..."
-	${FAIDX} $GENOME -i chromsizes  | grep -v "^${SCAHEAD}"  >  $OUTDIR/${OUTPOP}_CHRbp1.txt
+	cut -f1,2 ${GENOME}.fai  | grep -v "^${SCAHEAD}"  >  $OUTDIR/${OUTPOP}_CHRbp1.txt
 	awk '{print $1}' $OUTDIR/${OUTPOP}_CHRbp1.txt  | awk  '$2="1"' | awk '{gsub(" ","\t",$0); print;}' > $OUTDIR/${OUTPOP}_CHRbp2.txt
 	cat $OUTDIR/${OUTPOP}_CHRbp1.txt $OUTDIR/${OUTPOP}_CHRbp2.txt > $OUTDIR/${OUTPOP}_CHRbp.txt
 	cp  $OUTDIR/${OUTPOP}_CHRbp.txt $RUNDIR/CHRbp.txt &
