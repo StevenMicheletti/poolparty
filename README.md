@@ -10,7 +10,6 @@ PoolParty is designed to be run on Linux operating systems and primarily uses Un
 
 - Burrows-Wheeler Aligner (BWA) - http://bio-bwa.sourceforge.net/  
 - FASTQC - https://www.bioinformatics.babraham.ac.uk/projects/fastqc/  
-- pyfaidx - https://pypi.python.org/pypi/pyfaidx  
 - samblaster - https://github.com/GregoryFaust/samblaster  
 - samtools - http://www.htslib.org/download/  
 - Picard Tools - http://broadinstitute.github.io/picard/  
