@@ -9,7 +9,9 @@ ppnj <- function (infile,
 					chr.num,
 					tree.meth = 1,
 					boot.s = 100,
-					cnames = NULL
+					cnames = NULL,
+					out.format = "png",
+					mask.bs = FALSE
 ) {
 
 
@@ -34,11 +36,6 @@ require(plyr)
 #Read freq file produced by sync to af . R
 
 temp4<-fread(infile, skip =1)
-
-
-if (!is.null(cnames)) {
-colnames(temp4) <- c("V1", cnames)
-}
 
 NPOPS <- ncol(temp4) -1 
 
@@ -71,11 +68,8 @@ temp4 <- temp4[complete.cases(temp4), ]
 #total size
 ts <- (max(temp4$POS)) + 1000000
 
-#backup file ** 
-beforels <- temp4
-
 #Filter High Allele Diffs
-temp4 <- temp4[ which(temp4$R < af.filt),]
+temp4 <- temp4[ which(temp4$R > af.filt),]
 
 #Get a max position number and break up into linkage groups
 
@@ -199,7 +193,15 @@ temp4$CHR = NULL
 temp4$POS = NULL
 temp4$R = NULL
 
+
+if (!is.null(cnames)) { 
+     colnames(temp4) <- cnames
+}
+
+if (is.null(cnames)) { 
 colnames(temp4) <- c(as.character(1:NPOPS))
+}
+
 temp4<-t(temp4)
 
 # Get distance tree (manhattan = absolute distance between vectors)
@@ -298,20 +300,44 @@ ans <- prop.clades(phy, part = pp, rooted = TRUE)
 
 #original tree
 
-#plot consensus
-t1name = paste0(infile,"consensus_nj.png")
-png(t1name, width = 10, height = 5, units = 'in', res = 550)
-plot(phy, type = "u")
-add.scale.bar()
-nodelabels(ans)
-dev.off()
 
-t2name = paste0(infile,"single_nj.png")
-png("single_tree.png", width = 10, height = 5, units = 'in', res = 550)
-#plot point_est with node support
-plot(point_est, type = "u")
-add.scale.bar()
-nodelabels(bs$BP)
-dev.off()
+	if (out.format == "png" | out.format == "all"  ) {
+		#plot consensus
+		t1name = paste0(infile,"consensus_nj.png")
+		png(t1name, width = 10, height = 5, units = 'in', res = 550)
+		plot(phy, type = "u")
+			if (mask.bs == FALSE){
+			nodelabels(ans) }
+		dev.off()
 
+		t2name = paste0(infile,"single_nj.png")
+		png(t2name, width = 10, height = 5, units = 'in', res = 550)
+		#plot point_est with node support
+		plot(point_est, type = "u")
+			if (mask.bs == FALSE){
+			nodelabels(bs$BP) }
+		dev.off()
+
+	}
+
+	if (out.format == "pdf" | out.format == "all"  ) {
+		#plot consensus
+		t1name = paste0(infile,"consensus_nj.pdf")
+		pdf(t1name, width = 10, height = 5)
+		plot(phy, type = "u")
+		add.scale.bar()
+			if (mask.bs == FALSE){
+			nodelabels(ans) }
+		dev.off()
+
+		t2name = paste0(infile,"single_nj.pdf")
+		pdf(t2name, width = 10, height = 5)
+		#plot point_est with node support
+		plot(point_est, type = "u")
+		add.scale.bar()
+			if (mask.bs == FALSE){
+			nodelabels(bs$BP) }
+		dev.off()
+	}
 }
+
