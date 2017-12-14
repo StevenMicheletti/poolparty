@@ -2,7 +2,7 @@
 
 #PoolParty_base_V1.0
 #By Steven Micheletti
-#12/17/17
+#12/7/17
 
 #Must have configuration file in same directory
 source $PWD/PoolParty_base.config
@@ -38,7 +38,7 @@ fi
 		
 #Check for index file, quit if it does not exist
 	if [[ ! -f ${GENOME}.fai ]] ; then
- 	 echo '${GENOME}.fai index file is missing, aborting.'
+ 	 echo "${GENOME}.fai index file is missing, aborting"
    	 exit
 		fi
 
