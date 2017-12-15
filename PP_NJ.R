@@ -1,10 +1,10 @@
-###INPUTS####
+####INPUTS####
 #############
 
 ppnj <- function (infile,
 					win.size = 1,
 					method = "none",
-					af.filt = 0,
+					af.filt = 1,
 					snp.dens = FALSE,
 					chr.num,
 					tree.meth = 1,
@@ -33,34 +33,29 @@ require(plyr)
   if (tree.meth < 1 | tree.meth > 5 | !is.numeric(win.size)) stop ("tree.meth must be between 0 and 5")
   if (is.numeric(snp.dens)) stop ("snp.dens should be TRUE or FALSE")
   
-#Read freq file produced by sync to af . R
+#Read freq file produced by sync to af . R, skip the heading 
 
-temp4<-fread(infile, skip =1)
+	temp4<-fread(infile, skip =1)
 
-NPOPS <- ncol(temp4) -1 
+	NPOPS <- ncol(temp4) -1 
 
-alert1<- paste0(NPOPS, " populations present in this analysis")
-print(alert1)
+	alert1<- paste0(NPOPS, " populations present in this analysis")
+		print(alert1)
 
-#May be faster as a matrix
-##temp4 <- as.matrix(temp4)
 
 #Get allele freq diffs, filter out MAF < 0.05
-
+		print("Calculating summary statistics")
 temp4$R <- rowMaxs(temp4[,2:ncol(temp4)]) - rowMins(temp4[,2:ncol(temp4)])
 
-
 #Split the names into CHR and POS. NAS will be introduced by scaffolds
-headz <- str_split_fixed(temp4$V1, "_", 2)
-temp4$POS <- as.numeric (headz[,2])  
-temp4$CHR <-(headz[,1])  
-temp4$CHR <- as.integer(gsub('[a-zA-Z]', '', temp4$CHR ))
-
-
-#Add Chromosome back, NAs will be introduced by scaffold
-#temp4$CHR <- as.numeric(gsub("chr", "", temp4$CHR))
-
-temp4$CHR[temp4$CHR > chr.num] <- chr.num +1
+	headz <- str_split_fixed(temp4$V1, "_", 2)
+	temp4$POS <- as.numeric (headz[,2])  
+	temp4$CHR <-(headz[,1])  
+	temp4$CHR <- as.integer(gsub('[a-zA-Z]', '', temp4$CHR ))
+	#Add Chromosome back, NAs will be introduced by scaffold
+	#temp4$CHR <- as.numeric(gsub("chr", "", temp4$CHR))
+	temp4$CHR[temp4$CHR > chr.num] <- chr.num +1
+		print("Done")
 
 #Get rid of NAs (usually caused by unanchored regions without positions)
 temp4 <- temp4[complete.cases(temp4), ]
@@ -69,10 +64,16 @@ temp4 <- temp4[complete.cases(temp4), ]
 ts <- (max(temp4$POS)) + 1000000
 
 #Filter High Allele Diffs
-temp4 <- temp4[ which(temp4$R > af.filt),]
+		print("Filtering allele frequencies")
+	tempaf <- temp4[ which(temp4$R > af.filt),]
+	temp4 <- temp4[ which(temp4$R < af.filt),]
+		alert3 <- paste0(nrow(tempaf), " SNPs removed due to allele frequency filter of: ", af.filt)
+		alert4 <- paste0(nrow(temp4), " SNPs still remain")
+		print(alert3)
+		print(alert4)
 
 #Get a max position number and break up into linkage groups
-
+		
 if (win.size > 1) {
 	roundUP <- function(x, m){x + m - x %% m}
 	ts <- roundUP(ts,win.size)
@@ -104,6 +105,8 @@ temp4 <- temp4[ which(temp4$CHR < chr.num + 1),] #get rid of scaffolds
 
 #Calulate SNP density 
 if (snp.dens == TRUE ) {
+	alert5 = paste0("Calculating SNP density at window size of ", win.size, " bp")
+	print(alert5)
 	temp5 <- temp4
 	temp5$count <- as.numeric(ave(temp5[[1]], temp5$Group, FUN=length))
 	temp5$density <- temp5$count / win.size # get proportion of linkage group
@@ -126,9 +129,10 @@ if (snp.dens == TRUE ) {
 		gpout = c(infile,".density.txt")
 		gpout = paste(gpout, collapse="")
 		file.rename(tfile, gpout)
+	print("Done..")
 }
 
-
+	print("Processing window size")
 #Average for linkage group
 rownames(temp4) <- temp4$V1
 temp4$V1 = NULL
@@ -192,6 +196,8 @@ temp4$LG = NULL
 temp4$CHR = NULL
 temp4$POS = NULL
 temp4$R = NULL
+	print("Done...")
+	print("Doing the phylogenetics")
 
 
 if (!is.null(cnames)) { 
@@ -340,4 +346,5 @@ ans <- prop.clades(phy, part = pp, rooted = TRUE)
 		dev.off()
 	}
 }
+
 
