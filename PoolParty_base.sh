@@ -2,7 +2,7 @@
 
 #PoolParty_base_V1.0
 #By Steven Micheletti
-#12/7/17
+#12/15/17
 
 #Must have configuration file in same directory
 source $PWD/PoolParty_base.config
@@ -25,7 +25,7 @@ else
 fi
 
 ####-----------------------------------------RUNNING-----------------------------------------------#####
-###At 30 threads, expect this whole process to take about 1 day per full Illumina Lane####
+###At 30 threads, expect this whole process to take about 1 day per full Illumina Lane (at 400 million reads each)####
 
 			startt=`date +%s`
 			echo "Starting Quality Sequence Check"
@@ -74,6 +74,9 @@ fi
 	
 #Get anchored chromosome lengths in bp. Prints a copy to the rundir
 	echo "Creating genome anchored index..."
+	HNAM=$(cut -f1 ${GENOME}.fai |  sed 's/[^a-Z]*//g'  |  awk '!x[$0]++')
+	HNAM2=$(echo $HNAM)
+		echo "$HNAM2 are your chromosome and/or scaffold headings"
 	cut -f1,2 ${GENOME}.fai  | grep -v "^${SCAHEAD}"  >  $OUTDIR/${OUTPOP}_CHRbp1.txt
 	awk '{print $1}' $OUTDIR/${OUTPOP}_CHRbp1.txt  | awk  '$2="1"' | awk '{gsub(" ","\t",$0); print;}' > $OUTDIR/${OUTPOP}_CHRbp2.txt
 	cat $OUTDIR/${OUTPOP}_CHRbp1.txt $OUTDIR/${OUTPOP}_CHRbp2.txt > $OUTDIR/${OUTPOP}_CHRbp.txt
@@ -95,10 +98,10 @@ fi
 		fi
 		
 		if [[ "$MULTICORE" =~(on)$ ]] ; then
-			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type sanger echo &
+			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE echo &
 			echo "Trimming pairs "${array[i+1]}" 1 and "${array[i]}" 2 " &
 		else
-			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type sanger echo 
+			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE echo 
 			echo "Trimming pairs "${array[i+1]}" 1 and "${array[i]}" 2 " 
 		fi
 		done;wait
