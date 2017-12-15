@@ -84,11 +84,11 @@ The configuration file contains working directory locations, run paramteres and 
 - MAPQ=(integer) minimum MAPQ score to retain an alignment 
 - MULTICORE= ("on" or "off"). Turn on at your own risk. This will speed up your run by running certain scripts in parallel:
    trimming of fastq files, FASTQC quality scores, and samtools alignment stats. It roughly uses one core per fastq file. This may be      ideal for runs containing small numbers of pools, but may eat up RAM/CPU if you are running > 10 pools at once.  
-   
+- SCORETYPE=("sanger" or "illumina"). Are your fastq qualities encoded in Phred64 or Sanger format? Usually sanger
+
 #### Dependency Locations
 Identify the location and names of the executables / scripts.  If you've made programs executable across the whole system you don't need to include the directory.
 
-- FAIDX (file) faidx  
 - FASTQC (file) fastqc  
 - BWA (file) bwa  
 - SAMBLASTER (file) samblaster  
