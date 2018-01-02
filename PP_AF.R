@@ -3,6 +3,14 @@
 #Designed for variant sites only, not entire genomes! (Unless they are < 10 mb)
 #It is assumed at this point that you have applied a coverage filter
 
+
+#Install packages if they don't exist already
+list.of.packages <- c("data.table", "plyr","dplyr","tidyr","fBasics","stringr")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) print("Installing dependencies for first time use....")
+if(length(new.packages)) install.packages(new.packages)
+
+
 ppaf <- function(infile,
                       remove.uninformative = FALSE,
                       coverage.table = FALSE,
