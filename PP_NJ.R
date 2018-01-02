@@ -1,5 +1,9 @@
-####INPUTS####
-#############
+
+#Install packages if they don't exist already
+list.of.packages <- c("data.table", "adegenet","ape","fBasics","stringr","plyr")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) print("Installing dependencies for first time use....")
+if(length(new.packages)) install.packages(new.packages)
 
 ppnj <- function (infile,
 					win.size = 1,
@@ -22,10 +26,6 @@ require(ape)
 require(adegenet)
 require(stringr)
 require(plyr)
-
-
-###RUNNING######
-###############
 
 #Minor error checking
   if (win.size < 1 | !is.numeric(win.size)) stop ("win.size has to be a positive integer")
@@ -346,5 +346,3 @@ ans <- prop.clades(phy, part = pp, rooted = TRUE)
 		dev.off()
 	}
 }
-
-
