@@ -95,9 +95,9 @@ Identify the location and names of the executables / scripts.  If you've made pr
 - SAMTOOLS (file) samtools  
 - PICARDTOOLS (file) picard.jar (Picard Tools, Java)  
 - POPTRIM (file) trim-fastq.pl (Part of Popoolation, Perl)  
-- INDELREG= (file) identify-indel-regions.pl (Part of Popoolation, Perl)  
-- MP2SYNC (file) mpileup2sync.jar (Part of Popoolation, Java)  
-- FILTERSYNC (file) filter-sync-by-gtf.pl (Part of Popoolation, Perl)  
+- INDELREG= (file) identify-indel-regions.pl (Part of Popoolation2, Perl)  
+- MP2SYNC (file) mpileup2sync.jar (Part of Popoolation2, Java)  
+- FILTERSYNC (file) filter-sync-by-gtf.pl (Part of Popoolation2, Perl)  
 
 ## Output files and directories
 Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
