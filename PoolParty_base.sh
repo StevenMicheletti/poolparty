@@ -98,10 +98,10 @@ fi
 		fi
 		
 		if [[ "$MULTICORE" =~(on)$ ]] ; then
-			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE echo &
+			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE &
 			echo "Trimming pairs "${array[i+1]}" 1 and "${array[i]}" 2 " &
 		else
-			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE echo 
+			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE 
 			echo "Trimming pairs "${array[i+1]}" 1 and "${array[i]}" 2 " 
 		fi
 		done;wait
