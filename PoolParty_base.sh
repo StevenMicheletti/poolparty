@@ -98,6 +98,10 @@ fi
 			exit
 		fi
 		
+			###DIAGNOSTIC, PRINT TRIM LINE###
+			DIAG1=$(echo ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE)
+			echo $DIAG1
+		
 		if [[ "$MULTICORE" =~(on)$ ]] ; then
 			nice -n 19 perl ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE &
 			echo "Trimming pairs "${array[i+1]}" 1 and "${array[i]}" 2 " &
