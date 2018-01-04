@@ -13,8 +13,8 @@ PoolParty is designed to be run on Linux operating systems and primarily uses Un
 - samblaster - https://github.com/GregoryFaust/samblaster  
 - samtools - http://www.htslib.org/download/  
 - Picard Tools - http://broadinstitute.github.io/picard/  
-- Popoolation - https://sourceforge.net/projects/popoolation/  
-- Popoolation2- https://sourceforge.net/p/popoolation2/wiki/Main/  
+- Popoolation (1.2.2) - https://sourceforge.net/projects/popoolation/  
+- Popoolation2 (1.201)- https://sourceforge.net/p/popoolation2/wiki/Main/  
 
 ## Input Files
 
