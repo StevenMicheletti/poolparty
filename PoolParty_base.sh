@@ -2,6 +2,7 @@
 
 #PoolParty_base_V1.0
 #By Steven Micheletti
+#1/3/2018 - remove echo from trim
 #12/15/17
 
 #Must have configuration file in same directory
