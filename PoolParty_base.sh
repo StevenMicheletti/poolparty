@@ -99,7 +99,7 @@ fi
 		fi
 		
 			###DIAGNOSTIC, PRINT TRIM LINE###
-			DIAG1=$(echo ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE)
+			DIAG1=$(echo ${POPTRIM} --input1 $INDIR/${array[i]} --input2 $INDIR/${array[i+1]} --output $OUTDIR/trimmed/$b.trim --quality-threshold $QUAL --min-length $MINLENGTH --fastq-type $SCORETYPE
 			echo $DIAG1
 		
 		if [[ "$MULTICORE" =~(on)$ ]] ; then
@@ -205,7 +205,7 @@ echo "Preparing Popoolation Files"
 
 #Create Sync format for popoolation (POPOOLATION2 mpileup2sync.jar)
 	echo "Hold up... making sync file"
-	nice -n 19 java -ea -Xmx7g -jar ${MP2SYNC} --fastq-type sanger --min-qual $QUAL --input ${OUTDIR}/${OUTPOP}.mpileup --output ${OUTDIR}/${OUTPOP}.sync --threads $THREADZ 
+	nice nice -n 19 java -ea -Xmx7g -Djava.io.tmpdir=`pwd`/tmp -jar ${MP2SYNC} --fastq-type $SCORETYPE --min-qual $QUAL --input ${OUTDIR}/${OUTPOP}.mpileup --output ${OUTDIR}/${OUTPOP}.sync --threads $THREADZ 
 
 #Indel filtering : Remove regions around indels in sync file (POPOOLATION2 filter-sync-by-gtf.pl)
 	echo "Hold up... making removing indels from sync file"
