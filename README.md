@@ -2,108 +2,149 @@
 
 ### A Pool-Seq Bioinformatic Pipeline
 
-PoolParty takes raw paired-end fastq files, filters them, and formats them appropriately for further analysis while providing some stats along the way. Associated R scripts perform pair-wise analyses
+A BASH pipeline to align and analyze paired-end NGS data.
+
+## Getting Started
+
+Ensure that proper permissions are set to execute each package in the pipeline
+PoolParty is meant to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, etc.
+It is highly recommended to run the example files provided in the example directory before diving into large datasets
+
 
 ## Prerequisites
 
-PoolParty is designed to be run on Linux operating systems and primarily uses Unix tools. Because it coordinates the execution of multiple packages there are number of dependencies that must be installed prior to running. With the use of diverse packages, the latest versions of Java, Perl, and Python must be installed. The required packages for PoolParty are:
+PoolParty is designed to be run on Linux (GNU) operating systems. Because it coordinates the execution of multiple packages there are number of dependencies that must be installed prior to running. With the use of diverse packages, the latest versions of Java, Perl, and R must be installed. The required packages for PoolParty are:
 
-- Burrows-Wheeler Aligner (BWA) - http://bio-bwa.sourceforge.net/  
-- FASTQC - https://www.bioinformatics.babraham.ac.uk/projects/fastqc/  
-- samblaster - https://github.com/GregoryFaust/samblaster  
-- samtools - http://www.htslib.org/download/  
-- Picard Tools - http://broadinstitute.github.io/picard/  
-- Popoolation (1.2.2) - https://sourceforge.net/projects/popoolation/  
-- Popoolation2 (1.201)- https://sourceforge.net/p/popoolation2/wiki/Main/  
+# Package with the respective version
+- Burrows-Wheeler Aligner (BWA; 07.12) - http://bio-bwa.sourceforge.net/  
+- Fastqc (0.11.7 ) - https://www.bioinformatics.babraham.ac.uk/projects/fastqc/  
+- samblaster (0.1.24) - https://github.com/GregoryFaust/samblaster  
+- samtools (1.5) - http://www.htslib.org/download/  
+- bcftools (1.5) - http://www.htslib.org/download/  
+- Picard Tools (2.17.11) - http://broadinstitute.github.io/picard/  
+- Popoolation2 (1.201) - https://sourceforge.net/p/popoolation2/wiki/Main/  
+- BBMap (37.93) - https://sourceforge.net/projects/bbmap/  
 
 ## Input Files
 
-PoolParty requires unzipped .fastq files and a reference assembly genome. The reference genome must be thoroughly indexed to properly perform alignments and sorting:
+PoolParty requires paired-end .fastq files (either compressed or not) and a reference assembly genome. The reference genome must be indexed and prepared to properly perform alignments and sorting from various packages:
 
-> $ bwa index -a bwtsw  
-> $ samtools faidx  
-> $ picard.jar CreateSequenceDictionary  
+Prepare the reference genome for bwa mem:
+
+> $ bwa index -a bwtsw ref_genome.fasta
+
+Index the reference genome for samtools/bcftools:
+> $ samtools faidx ref_genome.fasta
+
+Create dictionary for Picard Tools:
+> $ -jar picard.jar CreateSequenceDictionary REFERENCE=ref_genome.fasta OUTPUT=ref_genome.fasta.dict
 
 PoolParty also requires an input file named 'samplelist.txt' which must be placed in the directory containing the fastqs. samplelist.txt is a list containing the file names (one per line) for all of the fastqs you want to include in the run. An example with 2 paired-end libraries:
 
->Pool1_R1.fastq  
->Pool1_R2.fastq  
->Pool2_R1.fastq  
->Pool2_R2.fastq  
+>Pool1_R1.fq.gz	1  
+>Pool1_R2.fq.gz	1  
+>Pool2_R1.fq.gz	2  
+>Pool2_R2.fq.gz	2  
 
-The naming convention of the fastq files is essential. The unique ID identifying the library must occur before the first underscore and must match its paired-end mate. 
+Note that the 'library' or 'population' number must be specified after each file. This number must be an integer from 1-N. See the example samplelist.txt for more information.
 
-## Running The Pipeline 
+The naming convention of the fastq files is essential. The unique ID identifying the library must occur before the first underscore and must match its paired-end mate. The number after the file designates the population or library that the file belongs to - this is particularly useful if individuals are barcoded or populations were sequenced on differet lanes. 
 
-PoolParty_base.sh and PoolParty_base.config must be in the same directory. Edit PoolParty_base.config and fill-in dependency and directory locations as well as parameter values. Simple execution of the alignment phase of the pipeline:
+## Installing and Running The Pipeline 
 
-> $ ./PoolParty_base.sh
+There is no compiling required. Unzip the folder into the desired directory.
 
-However, it is recommended to save the log as it will contain some valuable statistics...
+> $ tar -xvzf poolparty.tar.gz -C /usr/local/bin/poolparty
 
-> $ ./PoolParty_base.sh &> run.log &
+Creating a dynamic link will allow you to run each module from the command line :
 
-or run in the background 
+> $ ln -s /usr/local/bin/poolparty/poolparty_align.sh /usr/local/bin/PPalign
+> $ ln -s /usr/local/bin/poolparty/poolparty_analyze.sh /usr/local/bin/PPanalyze
+> $ ln -s /usr/local/bin/poolparty/poolparty_align.sh /usr/local/bin/PPStats
 
-> $ nohup nice -n 19 ./PoolParty_base.sh &> run.log &
+To run a poolparty module in unix followed by a corresponding configuration file :
 
-## Processes
+> $ PPalign align.config
 
-What is the alignment phase doing to your fastqs? 
+For each run, it is highly recommended to run the pipeline into a log file :
 
-- Quality trimming fastq files (Popoolation)  
+> $ PPalign align.config &> run.log &
+
+
+# PPalign
+
+PPalign takes paired-end fastq files through the process of quality filtering and alignment to a reference genome.
+The specified populations are combined into a VCF file, a sync file, and independent bam files. Additional reports are generated as well.
+
+
+## What is the alignment phase doing to your fastqs? 
+
+If pooled data do not have individual barcodes:
+- Quality trimming of fastq files and contaminant removal (BBduk from BBMap)  
 - Producing quality summaries of trimmed fastqs (fastqc)  
-- Making a genome index of the reference genome (pyfaidx)  
 - Aligning trimmed fastq files to genome assembly (bwa mem)  
-- Removing PCR duplicates and producing discordant and split-end BAMs (samblaster)  
-- Filtering the aligned BAM files and producing alignment stats (samtools)  
-- Sorting the BAM files (Picard)  
-- Combining filtered BAM files into mpileup (samtools)  
-- Identifying in/del regions in mpileup (Popoolation)  
-- Creating sync file with in/del regions masked (Popoolation)  
+- Removing PCR duplicates and producing discordant and split-end bam files (samblaster)  
+- Filtering the aligned bam files and producing alignment stats (samtools)  
+- Sorting the bam files (Picard)  
+- Calling SNPs from all  (bcftools)
+- Identifying in/del regions  (Popoolation2)  
+- Creating sync file with in/del regions masked (Popoolation2)  
+- MAF filtering and potential paralog identification (r_frequency.R)
+
+If individual barcoded analyses the alignment phase also contains:
+
+- Individual contribution stats (r_ind_stats.R)
+- A standardized sync file that normalizes individuals' allelic contribution to each genomic position (r_standardize.R)
+
 
 ## Editing the .config file
 
-The configuration file contains working directory locations, run paramteres and dependency locations.
+The configuration file contains working directory locations, run paramteres and dependency locations. Create a new .config file for each run and place it in your working directory.
 
-#### Directories and inputs
+#### Directory and input explanation
 
-- INDIR = (dir) the input directory that contains unzipped fastq files. 'samplelist.txt' must also be here
-- OUTDIR = (dir) the base directory that contains output files  
-- RUNDIR =(dir) the directory where you are running the bash script from  
-- OUTPOP = (string) the unique prefix name for your population output files  
-- GENOME = (file) the location and name of the fasta genome file
-- SCAHEAD = (string) the prefix that identifies unanchored scaffolds in the genoem assembly. Usually "scaff" or the like  
+- INDIR = (dir; required) the input directory that contains unzipped fastq files. 'samplelist.txt' must also be here  
+- OUTDIR = (dir; required) the base directory where output files will be written to  
+- OUTPOP = (string; required) the unique prefix name for your population output files  
+- GENOME = (file; required) the location and name of the fasta genome file
+- SCAHEAD = (string; optional) the prefix that identifies unanchored scaffolds in the genome assembly.  
+
 
 #### Run Parameters
 
-- THREADZ=(integer) the number of threads to use when multi-threading is possible  
-- QUAL=(integer) minimum PHRED base quality 
-- MINLENGTH=(integer) minimum length a fastq read can be trimmed to before throwing it out 
-- INWIN=(integer) the indel window size (bp) for masking SNPS around an indel 
-- MAPQ=(integer) minimum MAPQ score to retain an alignment 
-- MULTICORE= ("on" or "off"). Turn on at your own risk. This will speed up your run by running certain scripts in parallel:
-   trimming of fastq files, FASTQC quality scores, and samtools alignment stats. It roughly uses one core per fastq file. This may be      ideal for runs containing small numbers of pools, but may eat up RAM/CPU if you are running > 10 pools at once.  
-- SCORETYPE=("sanger" or "illumina"). Are your fastq qualities encoded in Phred64 or Sanger format? Usually sanger
+- THREADZ=(integer; required) the number of threads to use when multi-threading and parallel processing is available  
+- BQUAL=(integer; required) minimum PHRED base quality for trimming raw reads 
+- MINLENGTH=(integer; required) minimum length a fastq read can be trimmed to before discarding
+- INWIN=(integer; required) the indel window size (bp) for masking SNPS around an indel 
+- MAPQ=(integer; required) minimum MAPQ score to retain an alignment 
+- SNPQ=(integer; required) minimum bcftools snp QUAL score to retain a SNP
+- MAF=(float; required) minimum global minor allele frequency to retain a SNP
+- KMEM=(string; required) maximum memory allocation for java packages. Value will vary based on system. 
+- MINDP=(integer; required) minimum global coverage needed to retain a SNP
+
+#### Run-types
+- SPLITDISC=(off/on; required) if on, produces split-end and discordant sam files. Not recommended unless the goal is to look at structual variants.
+- INDCONT=(off/on; required) if on, will analyze fastqs as if they are independent individuals. Individual stats and normalization. Note this a high memory process.
+- QUALREPORT=(off/on; required) if on, will produce quality reports from fastqc for each fastq file. 
 
 #### Dependency Locations
 Identify the location and names of the executables / scripts.  If you've made programs executable across the whole system you don't need to include the directory.
 
-- FASTQC (file) fastqc  
-- BWA (file) bwa  
-- SAMBLASTER (file) samblaster  
-- SAMTOOLS (file) samtools  
-- PICARDTOOLS (file) picard.jar (Picard Tools, Java)  
-- POPTRIM (file) trim-fastq.pl (Part of Popoolation, Perl)  
-- INDELREG= (file) identify-indel-regions.pl (Part of Popoolation2, Perl)  
-- MP2SYNC (file) mpileup2sync.jar (Part of Popoolation2, Java)  
-- FILTERSYNC (file) filter-sync-by-gtf.pl (Part of Popoolation2, Perl)  
+- BCFTOOLS (executable) = bcftools
+- FASTQC (executable) = fastqc
+- BWA (executable) = bwa
+- SAMBLASTER (executable) = samblaster
+- SAMTOOLS (executable) = samtools
+- PICARDTOOLS (file) = picard.jar
+- BBMAPDIR (directory) = location of the bbmap directory
+- POOL2 (directory) = location of the Popoolation2 directory
+
 
 ## Output files and directories
 Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
 
-- ##### OUTDIR/trimmed/trim_1  
-  - Quality trimmed versions of the input fastq files. These are what get aligned to the genome assembly 
+- ##### OUTDIR/trimmed/
+  - Quality trimmed files will be written here
 
 - ##### OUTDIR/OUTPOP_prefixes.txt  
   - The prefix names (Library ID) of your libraries for this run 
@@ -138,14 +179,72 @@ Many files will be produced during the alignment phase. Ensure you have enough s
 - ##### RUNDIR/.log
   - The run log not only contains run information, but trimming stats, duplicate stats, and alignment stats.
     
- ## Analysis scripts
+# PPanalyze
 
+PPalign uses a freq and sync file to perform basic comparative analyses.
 
-### PP_AF.R
-- This R function (ppaf)  takes a .sync file and coverts it into an allele frequency table. It additionally will remove and produce a list of genomic positions failing minor allele frequency thresholds. If desired, a coverage table of the variant sites for each population/pool can also be produced. It is highly recommended that the .sync file be initially filtered by variant sites. 
+## How is it analyzing you data? 
 
-### PP_NJ.R
+- FST and/or sliding window FST (Popoolation2)  
+- Fisher's exact test for allele frequency differences (Popoolation2; requires Text::NSP::Measures::2D::Fisher::twotailed perl module)
+- Neighbor-joining trees (r_structure.R, ape)
+- SNP density (r_structure.R)
 
-- This R function (ppnj) uses an allele frequency table to generate neighbor-joining trees. There are many options to manipulate frequency data. High allele frequency positions (putative outliers) can be removed, and a windowed approach can be used to reduce over-representation of regions with high SNP density. SNP density can also be calculated for the given window size. Multiple genetic distances can be used to create neighbor-joining trees.
+## Editing the .config file
 
+The configuration file contains working directory locations, run paramteres and dependency locations. Create a new .config file for each run and place it in your working directory.
 
+#### Directory and input explanation
+- POPS=(alphanumeric string; required) - Populations you wish to analyze/compare to one another. If more than two populations, comparative analyses (such as FST) will be averaged across all comparisons. In some cases, populations may share a same trait of interest and should not be averaged. A comma (,) between populations means compare those populations, a colon (:) means ignore that comparison.
+- PREFIX=(string; required) - unique prefix for output files
+- COVFILE=(file;required) - file produced by PPalign which contains depth of coverage information for all populations in the analysis
+- SYNC=(file; required) - sync file produced by PPalign
+- FZFILE=(file; required) - allele frequency file produced by PPalign
+- BLACKLIST=(file; optional) - optional list of loci to black list (CHR, POS). Usually this is an output file from PPalign
+- OUTDIR=(dir; required) - location to output files
+
+#### Types of analyses
+- FST=(on/off; required) - perform FST on each SNP
+- SLIDINGFST=(on/off; required) - perform sliding window FST on defined SNP window
+- FET=(on/off; required) - perform Fisher's exact test on each SNP
+- NJTREE=(on/off; required) - perform NJ-tree and SNP density either on windowed or single SNPs
+
+#### Parameters
+- MINCOV=(integer; required) - The minimum coverage at a SNP (across every population included in the analysis) for it to be retained for any analysis
+- MAXCOV=(integer; required) - The maximum coverage at a SNP (across every population included in the analysis) for it to be retained for any analysis
+- MAF=(float; required) - comparison-specific minimum minor allele frequency to retain SNPs based on
+- FSTTYPE=(traditional/karlsson; required IF FST=on) - Perform traditional FST analysis or Karlsson (et al. 2007) method (Uses allele depth) 
+- WINDOW=(integer; required IF SLIDINGFST=on OR NJTREE=on) - window size for windowed approaches such as FST and NJTREE. If set to 1, NJTREE will not perform windowed analyses.
+- STEP=(integer; required IF SLIDIGNFST=on) - step size for sliding window FST
+- NIND=(integer; required IF FST=on) - number of individuals in pool for FST correction
+- BSTRAP=(integer; required IF NJTREE=on) - number of bootstraps to perform on neighbor joining tree
+- AFILT=(float; required if NJTREE=on ) - crude filter to try to eliminate SNPs under selection. Filters out SNPs with allele frequencies greater than this value. If set to 1, will not perform allele frequency filtering.
+- METHOD=("mean","sdmax","sdmin","random","rangemax","rangemin","first"; required if NJTREE=on AND WINDOW >1) - Method to choose SNPs within a window for NJTREE analyses.
+
+#### Dependency location
+- POOL2 (directory) = location of the Popoolation2 directory
+Note that FET analyses required an additional perl module which can be installed with:
+> $ cpan Text::NSP::Measures::2D::Fisher::twotailed
+
+# PPstats
+
+PPstats uses a mpileup file to perform depth of coverage statistics. This is particularly useful to assess sequencing performance.
+
+## How does PPstats generate statistics?
+
+PPStats simply takes a mpileup with each population's depth of coverage for each genomic position and determines stats such as 
+-Mean depth of coverage for each population
+-Mean depth of coverage after minimum and maximum coverage filters are applied for each population
+-Proportion of the reference genome that each population covers with sufficient coverage
+-Proportion of each chromosome covered (checking for biased alignment)
+
+## Editing the .config file
+
+- FAI==(file; required) - index file for the genome. Contains chromosome/scaffold lengths. Produced by samtools faidx
+- MPILEUP=(file; required) - stats mpileup generated by PPalign
+- OUTDIR=(dir; required) - output directory
+- OUTFILE=(string; required) - Prefix name of the stats output file (with no directory)
+- SCAFP=(string; required) - prefix name for scaffolds (will be indicated in .fai file). This is essential for plotting chromosome vs scaffold results. If no chromosomes are anchored, chromosomal analyses will be bypassed.
+- THREADZ=(integer; required) - number of threads to use. Memory usage is low for these analyses.
+- MINCOV=(integer; required) - minimum desired coverage to retain a genomic position
+- MAXCOV=(integer; required) - maximum desired coverage to retain a genomic position
