@@ -1,4 +1,4 @@
-# :fish: PoolParty :umbrella:
+# :fish: PoolParty (b.5) :umbrella:
 
 ### A Pool-Seq Bioinformatic Pipeline
 
@@ -8,7 +8,7 @@ A BASH pipeline to align and analyze paired-end NGS data.
 
 Ensure that proper permissions are set to execute each package in the pipeline
 PoolParty is meant to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, etc.
-It is highly recommended to run the example files provided in the example directory before diving into large datasets
+It is highly recommended to run the example files provided in the example directory before diving into large datasets. PP_example.pdf contains additional detailed information on the pipeline.
 
 
 ## Prerequisites
@@ -24,6 +24,7 @@ PoolParty is designed to be run on Linux (GNU) operating systems. Because it coo
 - Picard Tools (2.17.11) - http://broadinstitute.github.io/picard/  
 - Popoolation2 (1.201) - https://sourceforge.net/p/popoolation2/wiki/Main/  
 - BBMap (37.93) - https://sourceforge.net/projects/bbmap/  
+
 
 ## Input Files
 
@@ -76,7 +77,6 @@ For each run, it is highly recommended to run the pipeline into a log file :
 PPalign takes paired-end fastq files through the process of quality filtering and alignment to a reference genome.
 The specified populations are combined into a VCF file, a sync file, and independent bam files. Additional reports are generated as well.
 
-
 ## What is the alignment phase doing to your fastqs? 
 
 If pooled data do not have individual barcodes:
@@ -96,10 +96,9 @@ If individual barcoded analyses the alignment phase also contains:
 - Individual contribution stats (r_ind_stats.R)
 - A standardized sync file that normalizes individuals' allelic contribution to each genomic position (r_standardize.R)
 
-
 ## Editing the .config file
 
-The configuration file contains working directory locations, run paramteres and dependency locations. Create a new .config file for each run and place it in your working directory.
+The configuration file contains working directory locations, run paramteres and dependency locations. There are example config files provided. Create a new .config file for each run and place it in your working directory.
 
 #### Directory and input explanation
 
@@ -114,12 +113,12 @@ The configuration file contains working directory locations, run paramteres and 
 
 - THREADZ=(integer; required) the number of threads to use when multi-threading and parallel processing is available  
 - BQUAL=(integer; required) minimum PHRED base quality for trimming raw reads 
-- MINLENGTH=(integer; required) minimum length a fastq read can be trimmed to before discarding
-- INWIN=(integer; required) the indel window size (bp) for masking SNPS around an indel 
 - MAPQ=(integer; required) minimum MAPQ score to retain an alignment 
 - SNPQ=(integer; required) minimum bcftools snp QUAL score to retain a SNP
+- MINLENGTH=(integer; required) minimum length a fastq read can be trimmed to before discarding
+- INWIN=(integer; required) the indel window size (bp) for masking SNPS around an indel 
 - MAF=(float; required) minimum global minor allele frequency to retain a SNP
-- KMEM=(string; required) maximum memory allocation for java packages. Value will vary based on system. 
+- KMEM=(string; required) maximum memory allocation for java packages. Value will vary based on system 
 - MINDP=(integer; required) minimum global coverage needed to retain a SNP
 
 #### Run-types
@@ -143,42 +142,55 @@ Identify the location and names of the executables / scripts.  If you've made pr
 ## Output files and directories
 Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
 
-- ##### OUTDIR/trimmed/
-  - Quality trimmed files will be written here
-
-- ##### OUTDIR/OUTPOP_prefixes.txt  
-  - The prefix names (Library ID) of your libraries for this run 
-
 - ##### OUTDIR/OUTPOP_CHRbp.txt  
-  - Contains the end position and start position (would should be 1) in basepairs for each anchored chromosome.
+  - Contains the end position and start position (would should be 1) in basepairs for each  chromosome
+  
+- ##### OUTDIR/OUTPOP.mpileup  
+  - Combined filtered bam files, variants only. Order of columns is the same as in the order pools are listed in OUTDIR/_names.txt
+  
+- ##### OUTDIR/OUTPOP_stats.mpileup  
+  - Coverage for every combined library across all genomic positions of the ref assembly. Used to generate mapping stats
 
-- ##### OUTDIR/quality/fastq  
+- ##### OUTDIR/OUTPOP.VCF 
+  - Filtered variant call format of all libraries consisting of variants only
+
+- ##### OUTDIR/OUTPOP_variants.txt  
+  - List of positions of variants from VCF file with QUAL and DP
+  
+- ##### OUTDIR/OUTPOP.sync  
+  - Sync format with indel regions masked. Used for downstream analyses  
+  
+- ##### OUTDIR/_.fz
+  - Allele frequency table of SNPs. Full is table with missing data, complete is table without missing data  
+  
+- ##### OUTDIR/trimmed/
+  - Quality trimmed fastq files written here with corresponding trim reports
+
+- ##### OUTDIR/quality/  
   - fastqc quality summaries for trimmed reads  
 
-- ##### OUTDIR/BAM/BAM_2  
-  - Aligned, MAPQ filtered, and coordinate sorted BAM files  
-
-- ##### OUTDIR/BAM/BAM_3  
-  - Filtered BAM_2. All discordant, split-end, unpaired reads are filtered   
+- ##### OUTDIR/BAM/.bam
+  - Aligned (bwa-mem, samblaster duplicate removal), coordinate-sorted (picard), and filtered (samtools unpaired read removal) bam  files for each library. Filtered bams are also combined by population/category assignment from the samplelist
 
 - ##### OUTDIR/BAM/split.sam  
-  - split-end alignments produced by samblaster. Important if running SV-analysis such as LUMPY
+  - If specified, split-end alignments produced by samblaster. Required if running SV-analysis such as LUMPY
 
 - ##### OUTDIR/BAM/disc.sam  
-  - discordant alignments produced by samblaster. Important if running SV-analysis such as LUMPY  
+  - discordant alignments produced by samblaster. Required if running SV-analysis such as LUMPY  
 
-- ##### OUTDIR/OUTPOP.mpileup  
-  - Combined BAM_3 files. Order of columns is the same as in the order pools are listed in the prefix file  
-
-- ##### OUTDIR/OUTPOP_indel.sync  
-  - Sync format with indel regions masked. Used for downstream analyses  
-
-- ##### OUTDIR/reports/aln_report.txt
-  - Read alignment reports based on the alignment of trimmmed reads
+- ##### OUTDIR/reports/
+  - Read alignment reports based on the alignment of trimmmed reads for each aligned bam file
   
-- ##### RUNDIR/.log
-  - The run log not only contains run information, but trimming stats, duplicate stats, and alignment stats.
-    
+- ##### OUTDIR/pops/
+  - Files which specify which library belongs to which population. Also indicates the order of libraries in each population
+
+- ##### OUTDIR/filters/
+  - Files that specify coverage for each library/population and SNP and INDEL genomic locations. Blacklisted MAF and > 2 allele SNPs will be produced here as well.
+  
+- ##### OUTDIR/inds/
+  - If individual analyses turned on, individual-based stats, sync files, and mpileup files will be produced here. Additionally, normalized files will appear in OUTDIR/
+
+
 # PPanalyze
 
 PPalign uses a freq and sync file to perform basic comparative analyses.
@@ -226,6 +238,27 @@ The configuration file contains working directory locations, run paramteres and 
 Note that FET analyses required an additional perl module which can be installed with:
 > $ cpan Text::NSP::Measures::2D::Fisher::twotailed
 
+
+## Output files 
+
+- ##### OUTDIR/PREFIX_raw*
+  - Popoolation2's raw output for the given analysis
+
+- ##### OUTDIR/PREFIX_analysis*.txt
+  - Reformatted output for the given analysis. CHR,POS, ID, and P/FST 
+  
+- ##### OUTDIR/PREFIX.sync
+  - Subset sync file for specified populations
+  
+- ##### OUTDIR/PREFIX.fz
+  - Subset frequency table for specified populations
+  
+- ##### OUTDIR/PREFIX_density.txt
+  - SNP density for specified window with median position in the window
+  
+- ##### OUTDIR/PREFIX_consensus/single.pdf
+  - If specified, NJ tree for a single tree and consensus tree using Nei's genetic distance and specified number of bootstraps
+  
 # PPstats
 
 PPstats uses a mpileup file to perform depth of coverage statistics. This is particularly useful to assess sequencing performance.
@@ -248,3 +281,24 @@ PPStats simply takes a mpileup with each population's depth of coverage for each
 - THREADZ=(integer; required) - number of threads to use. Memory usage is low for these analyses.
 - MINCOV=(integer; required) - minimum desired coverage to retain a genomic position
 - MAXCOV=(integer; required) - maximum desired coverage to retain a genomic position
+
+## Output files 
+
+- ##### OUTDIR/_summary.txt
+  - Ref assembly stats
+  
+- ##### OUTDIR/_prop_cov.pdf
+  - Proportion of genome covered after specified min and max depth of coverage
+  
+- ##### OUTDIR/_prop_at_covs.pdf
+  - Proportion of genome covered at minimum depth increments
+  
+- ##### OUTDIR/_mean_filt_cov.pdf
+  - Mean depth of coverage after filtering out reads by min and max depth of coverage
+  
+- ##### OUTDIR/_mean_coverage.pdf
+  - Mean depth of coverage of all mapped reads
+  
+- ##### OUTDIR/_chr_prop_mean.pdf
+  - Mean proportion of each chromosome covered by mapped reads after filtering out reads by min and max depth of coverage. Similar plots will produced for each library/population
+ 
