@@ -64,7 +64,7 @@ Creating a symbolic link will allow you to run each module from the command line
 > $ ln -s /usr/local/bin/poolparty/poolparty_analyze.sh /usr/local/bin/PPanalyze  
 > $ ln -s /usr/local/bin/poolparty/poolparty_align.sh /usr/local/bin/PPStats  
 
-To run a poolparty module in unix followed by a corresponding configuration file :
+To run a PoolParty module in unix followed by a corresponding configuration file :
 
 > $ PPalign align.config
 
@@ -107,7 +107,7 @@ In addition to fastq files, PPalign also requires an input file named 'samplelis
 
 Note that the 'library' or 'population' number must be specified after each file. This number must be an integer from 1-N. See the example samplelist.txt for more information.
 
-The naming convention of the fastq files is essential. The unique ID identifying the library must occur before the first underscore and must match its paired-end mate. The number after the file designates the population or library that the file belongs to - this is particularly useful if individuals are barcoded or populations were sequenced on differet lanes. 
+The naming convention of the fastq files is essential. The unique ID identifying the library must occur before the first underscore and must match its paired-end mate. The number after the file designates the population or library that the file belongs to - this is particularly useful if individuals are barcoded or populations were sequenced on different lanes. 
 
 
 ## Editing the .config file
@@ -135,7 +135,7 @@ The configuration file contains working directory locations, run parameters and 
 - MINDP=(integer; required) minimum global coverage needed to retain a SNP
 
 #### Run-types
-- SPLITDISC=(off/on; required) if on, produces split-end and discordant sam files. Not recommended unless the goal is to look at structual variants  
+- SPLITDISC=(off/on; required) if on, produces split-end and discordant sam files. Not recommended unless the goal is to look at structural variants  
 - INDCONT=(off/on; required) if on, will analyze fastqs as if they are independent individuals. Individual stats and normalization. Note this a high memory process  
 - QUALREPORT=(off/on; required) if on, will produce quality reports from fastqc for each fastq file 
 
@@ -191,7 +191,7 @@ Many files will be produced during the alignment phase. Ensure you have enough s
   - discordant alignments produced by samblaster. Required if running SV-analysis such as LUMPY  
 
 - ##### OUTDIR/reports/
-  - Read alignment reports based on the alignment of trimmmed reads for each aligned bam file
+  - Read alignment reports based on the alignment of trimmed reads for each aligned bam file
   
 - ##### OUTDIR/pops/
   - Files which specify which library belongs to which population. Also indicates the order of libraries in each population
@@ -222,7 +222,7 @@ The configuration file contains working directory locations, run parameters and 
 #### Directory and input explanation
 - POPS=(alphanumeric string; required) - populations/libraries you wish to analyze/compare to one another. If more than two populations, comparative analyses (such as FST) will be averaged across all comparisons. In some cases, populations may share a same trait of interest and should not be averaged. A comma (,) between populations means compare those populations, a colon (:) means ignore that comparison.
 - PREFIX=(string; required) - unique prefix for output files
-- COVFILE=(file;required) - file produced by PPalign which contains depth of coverage information for all populations in the analysis
+- COVFILE=(file; required) - file produced by PPalign which contains depth of coverage information for all populations in the analysis
 - SYNC=(file; required) - sync file produced by PPalign
 - FZFILE=(file; required) - allele frequency file produced by PPalign
 - BLACKLIST=(file; optional) - optional list of loci to black list (CHR, POS). Usually this is an output file from PPalign
@@ -319,8 +319,8 @@ PPStats simply takes a mpileup with each population's depth of coverage for each
 
 PoolParty is new and thus users may encounter bugs. However, there are common issues that can be avoided  :
 
-1) Permissions: Proper permissions are not only needed to run the PoolParty modules, but also all dependencies. Ensure that your user account has permissions to execute programs and write to the specified output direcotires.
+1) Permissions: Proper permissions are not only needed to run the PoolParty modules, but also all dependencies. Ensure that your user account has permissions to execute programs and write to the specified output directories.
 2) Memory: With increased data comes increased memory usage. If java programs encounter a memory error they will usually spit out a interpretable error. Tune the java memory parameter accordingly.
 3) Storage: Large temporary files can fill up smaller hard drives fast. Storage issues generally will have to be resolved with hardware. 
 
-If an issue does not fall within this category, post the error message and explanation to the GitHub page. 
+If an issue does not fall within this category, post the error message and explanation to the GitHub page. Also, don't forget to check out the example file for more details. 
