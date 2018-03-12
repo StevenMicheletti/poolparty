@@ -8,7 +8,9 @@ A BASH pipeline to align and analyze paired-end NGS data.
 
 Ensure that proper permissions are set to execute each package in the pipeline  
  PoolParty is designed to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, etc.  
+
  It is highly recommended to run the example files provided in the example directory before diving into large datasets.  
+
  PP_example.pdf contains additional detailed information on the pipeline.  
 
 
@@ -27,12 +29,19 @@ PoolParty is designed to be run on Linux (GNU) operating systems. Because it coo
 - BBMap (37.93) - https://sourceforge.net/projects/bbmap/  
 
 
+### R packages used
+If not already installed, PoolParty will attempt to automatically install required R packages. It is recommended to manually install packages beforehand:
+-PPalign: matrixStats, tidyr, stringr, data.table  
+-PPstats: reshape, fBasics, ggplot2, RColorBrewer  
+-PPanalyze: matrixStats, plyr, stringr, data.table, fBasics, ape, metap
+
 ## Input Files
 
 PoolParty requires paired-end .fastq files (compressed or not) and a reference assembly genome (draft or complete). The reference genome must be indexed and prepared to properly perform alignments and sorting from various packages:
 
-Prepare the reference genome for bwa mem:
+### Reference genome preparation:
 
+Prepare the reference genome for bwa mem:
 > $ bwa index -a bwtsw ref_genome.fasta
 
 Index the reference genome for samtools/bcftools:
@@ -49,11 +58,11 @@ There is no compiling required. Unzip the folder into the desired directory.
 
 > $ tar -xvzf poolparty.tar.gz -C /usr/local/bin/poolparty
 
-Creating a dynamic link will allow you to run each module from the command line :
+Creating a symbolic link will allow you to run each module from the command line :
 
-> $ ln -s /usr/local/bin/poolparty/poolparty_align.sh /usr/local/bin/PPalign
-> $ ln -s /usr/local/bin/poolparty/poolparty_analyze.sh /usr/local/bin/PPanalyze
-> $ ln -s /usr/local/bin/poolparty/poolparty_align.sh /usr/local/bin/PPStats
+> $ ln -s /usr/local/bin/poolparty/poolparty_align.sh /usr/local/bin/PPalign  
+> $ ln -s /usr/local/bin/poolparty/poolparty_analyze.sh /usr/local/bin/PPanalyze  
+> $ ln -s /usr/local/bin/poolparty/poolparty_align.sh /usr/local/bin/PPStats  
 
 To run a poolparty module in unix followed by a corresponding configuration file :
 
@@ -67,7 +76,7 @@ For each run, it is highly recommended to run the pipeline into a log file :
 # PPalign
 
 PPalign takes paired-end fastq files through the process of quality filtering and alignment to a reference genome.
-The specified populations are combined into a VCF file, a sync file, and independent bam files. Additional reports are generated as well.
+The specified populations are combined into a VCF file, a mpileup file, a sync file, and independent bam files. Additional reports are generated as well.
 
 ## What is the alignment phase doing to your fastqs? 
 
@@ -78,7 +87,7 @@ If pooled data do not have individual barcodes:
 - Removing PCR duplicates and producing discordant and split-end bam files (samblaster)  
 - Filtering the aligned bam files and producing alignment stats (samtools)  
 - Sorting the bam files (Picard)  
-- Calling SNPs from all  (bcftools)
+- Calling SNPs across all libraries (bcftools)
 - Identifying in/del regions  (Popoolation2)  
 - Creating sync file with in/del regions masked (Popoolation2)  
 - MAF filtering and potential paralog identification (r_frequency.R)
@@ -103,7 +112,7 @@ The naming convention of the fastq files is essential. The unique ID identifying
 
 ## Editing the .config file
 
-The configuration file contains working directory locations, run paramteres and dependency locations. There are example config files provided. Create a new .config file for each run and place it in your working directory.
+The configuration file contains working directory locations, run parameters and dependency locations. There are example config files provided. Create a new .config file for each run and place it in your working directory.
 
 #### Directory and input explanation
 
@@ -111,7 +120,7 @@ The configuration file contains working directory locations, run paramteres and 
 - OUTDIR = (dir; required) the base directory where output files will be written to  
 - OUTPOP = (string; required) the unique prefix name for your population output files  
 - GENOME = (file; required) the location and name of the fasta genome file
-- SCAHEAD = (string; optional) the prefix that identifies unanchored scaffolds in the genome assembly.  
+- SCAHEAD = (string; optional) the prefix that identifies unanchored scaffolds in the genome assembly  
 
 #### Run Parameters
 
@@ -126,12 +135,12 @@ The configuration file contains working directory locations, run paramteres and 
 - MINDP=(integer; required) minimum global coverage needed to retain a SNP
 
 #### Run-types
-- SPLITDISC=(off/on; required) if on, produces split-end and discordant sam files. Not recommended unless the goal is to look at structual variants.
-- INDCONT=(off/on; required) if on, will analyze fastqs as if they are independent individuals. Individual stats and normalization. Note this a high memory process.
-- QUALREPORT=(off/on; required) if on, will produce quality reports from fastqc for each fastq file. 
+- SPLITDISC=(off/on; required) if on, produces split-end and discordant sam files. Not recommended unless the goal is to look at structual variants  
+- INDCONT=(off/on; required) if on, will analyze fastqs as if they are independent individuals. Individual stats and normalization. Note this a high memory process  
+- QUALREPORT=(off/on; required) if on, will produce quality reports from fastqc for each fastq file 
 
 #### Dependency Locations
-Identify the location and names of the executables / scripts.  If you've made programs executable across the whole system you don't need to include the directory.
+Identify the location and names of the executables / scripts.  If you've made programs executable across from any directory you don't need to include the directory  
 
 - BCFTOOLS (executable) = bcftools
 - FASTQC (executable) = fastqc
@@ -146,7 +155,7 @@ Identify the location and names of the executables / scripts.  If you've made pr
 Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
 
 - ##### OUTDIR/OUTPOP_CHRbp.txt  
-  - Contains the end position and start position (would should be 1) in basepairs for each  chromosome
+  - Contains the end position and start position in basepairs for each  chromosome
   
 - ##### OUTDIR/OUTPOP.mpileup  
   - Combined filtered bam files, variants only. Order of columns is the same as in the order pools are listed in OUTDIR/_names.txt
@@ -199,7 +208,7 @@ Many files will be produced during the alignment phase. Ensure you have enough s
 
 PPanalyze uses a freq and sync file generated by PPalign to perform basic comparative analyses.
 
-## How is it analyzing you data? 
+## How is PPanalyze analyzing you data? 
 
 - FST and/or sliding window FST (Popoolation2)  
 - Fisher's exact test for allele frequency differences (Popoolation2)
@@ -211,7 +220,7 @@ PPanalyze uses a freq and sync file generated by PPalign to perform basic compar
 The configuration file contains working directory locations, run parameters and dependency locations. Create a new .config file for each run and place it in your working directory.
 
 #### Directory and input explanation
-- POPS=(alphanumeric string; required) - Populations you wish to analyze/compare to one another. If more than two populations, comparative analyses (such as FST) will be averaged across all comparisons. In some cases, populations may share a same trait of interest and should not be averaged. A comma (,) between populations means compare those populations, a colon (:) means ignore that comparison.
+- POPS=(alphanumeric string; required) - populations/libraries you wish to analyze/compare to one another. If more than two populations, comparative analyses (such as FST) will be averaged across all comparisons. In some cases, populations may share a same trait of interest and should not be averaged. A comma (,) between populations means compare those populations, a colon (:) means ignore that comparison.
 - PREFIX=(string; required) - unique prefix for output files
 - COVFILE=(file;required) - file produced by PPalign which contains depth of coverage information for all populations in the analysis
 - SYNC=(file; required) - sync file produced by PPalign
