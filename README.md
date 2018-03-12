@@ -1,21 +1,22 @@
-# :fish: PoolParty (b.5) :umbrella:
+# :fish: PoolParty  :umbrella:
 
-### A Pool-Seq Bioinformatic Pipeline
+### A Pool-Seq Bioinformatic Pipeline (ver b0.2)
 
 A BASH pipeline to align and analyze paired-end NGS data.
 
-## Getting Started
+# Getting Started
 
-Ensure that proper permissions are set to execute each package in the pipeline
-PoolParty is meant to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, etc.
-It is highly recommended to run the example files provided in the example directory before diving into large datasets. PP_example.pdf contains additional detailed information on the pipeline.
+Ensure that proper permissions are set to execute each package in the pipeline  
+ PoolParty is designed to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, etc.  
+ It is highly recommended to run the example files provided in the example directory before diving into large datasets.  
+ PP_example.pdf contains additional detailed information on the pipeline.  
 
 
 ## Prerequisites
 
 PoolParty is designed to be run on Linux (GNU) operating systems. Because it coordinates the execution of multiple packages there are number of dependencies that must be installed prior to running. With the use of diverse packages, the latest versions of Java, Perl, and R must be installed. The required packages for PoolParty are:
 
-# Package with the respective version
+## Required package with the respective version
 - Burrows-Wheeler Aligner (BWA; 07.12) - http://bio-bwa.sourceforge.net/  
 - Fastqc (0.11.7 ) - https://www.bioinformatics.babraham.ac.uk/projects/fastqc/  
 - samblaster (0.1.24) - https://github.com/GregoryFaust/samblaster  
@@ -28,7 +29,7 @@ PoolParty is designed to be run on Linux (GNU) operating systems. Because it coo
 
 ## Input Files
 
-PoolParty requires paired-end .fastq files (either compressed or not) and a reference assembly genome. The reference genome must be indexed and prepared to properly perform alignments and sorting from various packages:
+PoolParty requires paired-end .fastq files (compressed or not) and a reference assembly genome (draft or complete). The reference genome must be indexed and prepared to properly perform alignments and sorting from various packages:
 
 Prepare the reference genome for bwa mem:
 
@@ -40,16 +41,7 @@ Index the reference genome for samtools/bcftools:
 Create dictionary for Picard Tools:
 > $ -jar picard.jar CreateSequenceDictionary REFERENCE=ref_genome.fasta OUTPUT=ref_genome.fasta.dict
 
-PoolParty also requires an input file named 'samplelist.txt' which must be placed in the directory containing the fastqs. samplelist.txt is a list containing the file names (one per line) for all of the fastqs you want to include in the run. An example with 2 paired-end libraries:
 
->Pool1_R1.fq.gz	1  
->Pool1_R2.fq.gz	1  
->Pool2_R1.fq.gz	2  
->Pool2_R2.fq.gz	2  
-
-Note that the 'library' or 'population' number must be specified after each file. This number must be an integer from 1-N. See the example samplelist.txt for more information.
-
-The naming convention of the fastq files is essential. The unique ID identifying the library must occur before the first underscore and must match its paired-end mate. The number after the file designates the population or library that the file belongs to - this is particularly useful if individuals are barcoded or populations were sequenced on differet lanes. 
 
 ## Installing and Running The Pipeline 
 
@@ -96,6 +88,19 @@ If individual barcoded analyses the alignment phase also contains:
 - Individual contribution stats (r_ind_stats.R)
 - A standardized sync file that normalizes individuals' allelic contribution to each genomic position (r_standardize.R)
 
+## Input files
+In addition to fastq files, PPalign also requires an input file named 'samplelist.txt' which must be placed in the directory containing the fastqs. samplelist.txt is a list containing the file names (one per line) for all of the fastqs you want to include in the run. An example with 2 paired-end libraries:
+
+>Pool1_R1.fq.gz	1  
+>Pool1_R2.fq.gz	1  
+>Pool2_R1.fq.gz	2  
+>Pool2_R2.fq.gz	2  
+
+Note that the 'library' or 'population' number must be specified after each file. This number must be an integer from 1-N. See the example samplelist.txt for more information.
+
+The naming convention of the fastq files is essential. The unique ID identifying the library must occur before the first underscore and must match its paired-end mate. The number after the file designates the population or library that the file belongs to - this is particularly useful if individuals are barcoded or populations were sequenced on differet lanes. 
+
+
 ## Editing the .config file
 
 The configuration file contains working directory locations, run paramteres and dependency locations. There are example config files provided. Create a new .config file for each run and place it in your working directory.
@@ -107,7 +112,6 @@ The configuration file contains working directory locations, run paramteres and 
 - OUTPOP = (string; required) the unique prefix name for your population output files  
 - GENOME = (file; required) the location and name of the fasta genome file
 - SCAHEAD = (string; optional) the prefix that identifies unanchored scaffolds in the genome assembly.  
-
 
 #### Run Parameters
 
@@ -137,7 +141,6 @@ Identify the location and names of the executables / scripts.  If you've made pr
 - PICARDTOOLS (file) = picard.jar
 - BBMAPDIR (directory) = location of the bbmap directory
 - POOL2 (directory) = location of the Popoolation2 directory
-
 
 ## Output files and directories
 Many files will be produced during the alignment phase. Ensure you have enough storage before executing.
@@ -190,21 +193,22 @@ Many files will be produced during the alignment phase. Ensure you have enough s
 - ##### OUTDIR/inds/
   - If individual analyses turned on, individual-based stats, sync files, and mpileup files will be produced here. Additionally, normalized files will appear in OUTDIR/
 
-
 # PPanalyze
 
-PPalign uses a freq and sync file to perform basic comparative analyses.
+## Input
+
+PPanalyze uses a freq and sync file generated by PPalign to perform basic comparative analyses.
 
 ## How is it analyzing you data? 
 
 - FST and/or sliding window FST (Popoolation2)  
-- Fisher's exact test for allele frequency differences (Popoolation2; requires Text::NSP::Measures::2D::Fisher::twotailed perl module)
+- Fisher's exact test for allele frequency differences (Popoolation2)
 - Neighbor-joining trees (r_structure.R, ape)
 - SNP density (r_structure.R)
 
 ## Editing the .config file
 
-The configuration file contains working directory locations, run paramteres and dependency locations. Create a new .config file for each run and place it in your working directory.
+The configuration file contains working directory locations, run parameters and dependency locations. Create a new .config file for each run and place it in your working directory.
 
 #### Directory and input explanation
 - POPS=(alphanumeric string; required) - Populations you wish to analyze/compare to one another. If more than two populations, comparative analyses (such as FST) will be averaged across all comparisons. In some cases, populations may share a same trait of interest and should not be averaged. A comma (,) between populations means compare those populations, a colon (:) means ignore that comparison.
@@ -265,11 +269,11 @@ PPstats uses a mpileup file to perform depth of coverage statistics. This is par
 
 ## How does PPstats generate statistics?
 
-PPStats simply takes a mpileup with each population's depth of coverage for each genomic position and determines stats such as 
--Mean depth of coverage for each population
--Mean depth of coverage after minimum and maximum coverage filters are applied for each population
--Proportion of the reference genome that each population covers with sufficient coverage
--Proportion of each chromosome covered (checking for biased alignment)
+PPStats simply takes a mpileup with each population's depth of coverage for each genomic position and determines stats such as:  
+  -Mean depth of coverage for each population  
+  -Mean depth of coverage after minimum and maximum coverage filters are applied for each population  
+  -Proportion of the reference genome that each population covers with sufficient coverage  
+  -Proportion of each chromosome covered (checking for biased alignment)  
 
 ## Editing the .config file
 
@@ -301,4 +305,13 @@ PPStats simply takes a mpileup with each population's depth of coverage for each
   
 - ##### OUTDIR/_chr_prop_mean.pdf
   - Mean proportion of each chromosome covered by mapped reads after filtering out reads by min and max depth of coverage. Similar plots will produced for each library/population
- 
+  
+# Troubleshooting
+
+PoolParty is new and thus users may encounter bugs. However, there are common issues that can be avoided  :
+
+1) Permissions: Proper permissions are not only needed to run the PoolParty modules, but also all dependencies. Ensure that your user account has permissions to execute programs and write to the specified output direcotires.
+2) Memory: With increased data comes increased memory usage. If java programs encounter a memory error they will usually spit out a interpretable error. Tune the java memory parameter accordingly.
+3) Storage: Large temporary files can fill up smaller hard drives fast. Storage issues generally will have to be resolved with hardware. 
+
+If an issue does not fall within this category, post the error message and explanation to the GitHub page. 
