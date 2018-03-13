@@ -57,11 +57,11 @@ Create dictionary for Picard Tools:
 
 Clone poolparty into a directory
 
-> git clone https://github.com/StevenMicheletti/poolparty/
+> $ git clone https://github.com/StevenMicheletti/poolparty/
 
 There is no compiling required. Place the folder into the desired directory.
 
-> mv poolparty /usr/local/bin/poolparty
+> $ mv poolparty /usr/local/bin/poolparty
 
 Creating a symbolic link will allow you to run each module from the command line :
 
