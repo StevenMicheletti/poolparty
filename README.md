@@ -55,11 +55,11 @@ Create dictionary for Picard Tools:
 
 ## Installing and Running The Pipeline 
 
-Clone poolparty into a directory
+Clone poolparty:
 
 > $ git clone https://github.com/StevenMicheletti/poolparty/
 
-There is no compiling required. Place the folder into the desired directory.
+There is no compiling or decompressing required. Place the folder into the desired directory:
 
 > $ mv poolparty /usr/local/bin/poolparty
 
