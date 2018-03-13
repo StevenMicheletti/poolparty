@@ -31,7 +31,8 @@ PoolParty is designed to be run on Linux (GNU) operating systems. Because it coo
 
 
 ### R packages used
-If not already installed, PoolParty will attempt to automatically install required R packages. It is recommended to manually install packages beforehand:
+If not already installed, PoolParty will attempt to automatically install required R packages. It is recommended to manually install packages beforehand:  
+
 -PPalign: matrixStats, tidyr, stringr, data.table  
 -PPstats: reshape, fBasics, ggplot2, RColorBrewer  
 -PPanalyze: matrixStats, plyr, stringr, data.table, fBasics, ape, metap
