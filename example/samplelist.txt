@@ -1,0 +1,10 @@
+P101_103_R1_PopA.fq.gz	1
+P101_103_R2_PopA.fq.gz	1
+P102_97_R1_PopA.fq.gz	1
+P102_97_R2_PopA.fq.gz	1
+P201_104_R1_PopB.fq.gz	2
+P201_104_R2_PopB.fq.gz	2
+P202_103_R1_PopB.fq.gz	2
+P202_103_R2_PopB.fq.gz	2
+P203_97_R1_PopB.fq.gz	2
+P203_97_R2_PopB.fq.gz	2
