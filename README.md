@@ -326,7 +326,7 @@ PPStats simply takes a mpileup with each population's depth of coverage for each
 PoolParty is new so users may encounter bugs. However, there are common issues that can be avoided  :
 
 1) Permissions: Proper permissions are not only needed to run the PoolParty modules, but also all dependencies. Ensure that your user account has permissions to execute programs and write to the specified output directories.
-2) Memory: With increased data comes increased memory usage. If java programs encounter a memory error they will usually spit out a interpretable error. Tune the java memory parameter accordingly.
+2) Memory: With increased data comes increased memory usage. If java programs encounter a memory error they will usually spit out an interpretable error. Tune the java memory parameter accordingly.
 3) Storage: Large temporary files can fill up smaller hard drives fast. Storage issues generally will have to be resolved with hardware. 
 
 If an issue does not fall within this category, post the error message and explanation to the PoolParty GitHub page. Also, don't forget to check out the example file for more details. 
