@@ -6,9 +6,9 @@ A BASH pipeline to align and analyze paired-end NGS data.
 
 # Getting Started
 
-Ensure that proper permissions are set to execute each package in the pipeline  
+Ensure that proper permissions are set to execute each package in the pipeline . 
 
- PoolParty is designed to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, etc.  
+ PoolParty is designed to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, number of pools, etc.  
 
  It is highly recommended to run the example files provided in the example directory before diving into large datasets.  
 
@@ -19,7 +19,7 @@ Ensure that proper permissions are set to execute each package in the pipeline
 
 PoolParty is designed to be run on Linux (GNU) operating systems. Because it coordinates the execution of multiple packages there are number of dependencies that must be installed prior to running. With the use of diverse packages, the latest versions of Java, Perl, and R must be installed. The required packages for PoolParty are:
 
-## Required package with the respective version
+## Required package with version at inception 
 - Burrows-Wheeler Aligner (BWA; 07.12) - http://bio-bwa.sourceforge.net/  
 - Fastqc (0.11.7 ) - https://www.bioinformatics.babraham.ac.uk/projects/fastqc/  
 - samblaster (0.1.24) - https://github.com/GregoryFaust/samblaster  
