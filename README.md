@@ -330,3 +330,19 @@ PoolParty is new so users may encounter bugs. However, there are common issues t
 3) Storage: Large temporary files can fill up smaller hard drives fast. Storage issues generally will have to be resolved with hardware. 
 
 If an issue does not fall within this category, post the error message and explanation to the PoolParty GitHub page. Also, don't forget to check out the example file for more details. 
+
+## Stopping PoolParty
+
+Perhaps you included the wrong samples or need to add an additional information to a PoolParty run that is currently underway. Since many modules run background processes, you will have to kill the entire script in this fashion: 
+
+Enter the module that is running and determine processes it is associated with:  
+
+> $ ps -aux | grep PPalign 
+
+Kill all script processes:  
+
+> $ killall PPalign inotifywait
+
+You may need to kill any additional lingering processes
+
+> $ kill PID
