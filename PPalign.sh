@@ -249,7 +249,6 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 		fi
 	awk '{print $1}' $OUTDIR/${OUTPOP}_CHRbp1.txt  | awk  '$2="1"' | awk '{gsub(" ","\t",$0); print;}' > $OUTDIR/${OUTPOP}_CHRbp2.txt
 	cat $OUTDIR/${OUTPOP}_CHRbp1.txt $OUTDIR/${OUTPOP}_CHRbp2.txt > $OUTDIR/${OUTPOP}_CHRbp.txt
-	cp  $OUTDIR/${OUTPOP}_CHRbp.txt $RUNDIR/CHRbp.txt &
 	rm $OUTDIR/${OUTPOP}_CHRbp1.txt ; rm $OUTDIR/${OUTPOP}_CHRbp2.txt
 
 		if  [[ -f $OUTDIR/${OUTPOP}_names.txt ]] ; then
