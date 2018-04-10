@@ -66,10 +66,10 @@
     for (i in (1:npops)) {
       MVar[[i]] <- as.matrix(Var[[i]])
       is.na( MVar[[i]])<- MVar[[i]]==0
-      MCON[[i]] <- rowMins(MVar[[i]], na.rm =TRUE) / rowSums2(MVar[[i]], na.rm=TRUE)
+      MCON[[i]] <- rowMins(MVar[[i]], na.rm =TRUE) / rowSums(MVar[[i]], na.rm=TRUE)
       MCON[[i]][!is.finite(MCON[[i]])] <- 2
-      MSUM[[i]] <- rowSums2(MVar[[i]], na.rm =TRUE)
-      MCNT[[i]] <- rowSums2(MVar[[i]] > 0, na.rm =TRUE)
+      MSUM[[i]] <- rowSums(MVar[[i]], na.rm =TRUE)
+      MCNT[[i]] <- rowSums(MVar[[i]] > 0, na.rm =TRUE)
       MMIN[[i]] <- rowMins(MVar[[i]], na.rm =TRUE)
       gc()
     }

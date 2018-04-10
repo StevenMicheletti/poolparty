@@ -23,16 +23,19 @@ suppressMessages(require(plyr))
 	#Grab column names
 	cnames<-as.character(read.table(file=cnamefile , header=F))
 
+	#turn off sci notation
+	options(scipen=999)
+
 print("R ALERT: R structure analysis has begun")
 
 	alertname <- sub('.*/', '', name )
 	alertname2 <- sub('\\..*', '', alertname)
 
-	#Minor error checking
+#Minor error checking
 	if (win.size < 1 | !is.numeric(win.size)) stop ("win.size has to be a positive integer")
 
 #Read freq file produced by sync to af . R, skip the heading 
-	infile<-fread(file=name, showProgress=FALSE)
+	infile<-fread(file=name, showProgress=FALSE, header=FALSE)
 	infile <- infile[complete.cases(infile), ]
 	NPOPS <- ncol(infile) -3
 	alert1<- paste0("R ALERT: ", NPOPS, " populations included for structure analyses")
@@ -71,7 +74,9 @@ print("R ALERT: R structure analysis has begun")
 
 #Create output name
 tfile=paste0(outdir, "/", alertname2, "_TEMP")
-#Calculate SNP density 
+
+if (win.size > 1) {
+  #Calculate SNP density 
   alert5 = paste0("R ALERT: Calculating SNP density at window size of ", win.size, " bp")
   print(alert5)
   denZ <- infile
@@ -79,88 +84,188 @@ tfile=paste0(outdir, "/", alertname2, "_TEMP")
   denZ$density <- denZ$count / win.size # get proportion of linkage group
   denZ$avpos <-  ceiling(ave(denZ$V2, denZ$Group, FUN=mean))
   denZ = denZ[!duplicated(denZ$Group),]
-  denZI <- as.data.frame(cbind(denZ$V1, denZ$avpos, denZ$density))
-  colnames(denZI) <- c("CHR", "POS", "DENSITY")
+  denzS = 1:nrow(denZ)
+  denZI <- as.data.frame(cbind(denZ$V1, denZ$avpos, denzS, denZ$density))
+  colnames(denZI) <- c("CHR", "POS", "SNP", "DENSITY")
   denZI$DENSITY<- as.numeric(as.character(denZI$DENSITY))
   minz <- min(denZI$DENSITY)
   maxz <- max(denZI$DENSITY)
   info <- paste0("R ALERT: Max density is ", maxz, " SNPs per ", win.size, " bp ", "and Min density is ", minz, " SNPs per ", win.size, " bp.")
   print(info)
+  info2<- paste0("R ALERT: With a window size of ", win.size, " there are now ", nrow(denZI), " SNP positions")
+  print(info2)
   #Write out file
-  write.table(denZI, file =tfile, sep='\t', quote=FALSE, col.names= TRUE, row.names = FALSE)
+  write.table(denZI, file =tfile, sep='\t', quote=FALSE, col.names= FALSE, row.names = FALSE)
   gpout = paste0(outdir, "/", alertname2, "_density.txt")
   invisible(file.rename(tfile, gpout))
-
-#remove excess columns
-	infile$V3=NULL
-	infile$LG = NULL
-	infile$V1 = NULL
-	infile$V2 = NULL
-	infile$R = NULL
+}
 
 print("R ALERT: Processing window size")
+	infile$LG=NULL
+	infile$V1=NULL
 
 if (win.size > 1) {
   if (method == "mean") {
+	infile$V3=NULL
+	infile$R=NULL
+	infile$V2=NULL
     for (i in 1:(NPOPS)) {
       infile[[i]] <- ave(infile[[i]], infile$Group, FUN=mean)
     }
     infile = infile[!duplicated(infile$Group),]	
-  }
-if (method == "sdmax") {
-    library(matrixStats)
-    temp5 <- as.matrix(infile[,1:NPOPS])
-    temp5 <- cbind(temp5,rowSds(temp5))
-    infile$SD <- temp5[, NPOPS+1]
-    infile <- infile[with(infile, order(Group, SD)), ]
-    infile = infile[!duplicated(infile$Group),]
-    infile$SD <- NULL
-    detach("package:matrixStats", unload=TRUE)
-  }
-  
-  if (method == "sdmin") {
-    library(matrixStats)
-    temp5 <- as.matrix(infile[,1:NPOPS])
-    temp5 <- cbind(temp5,rowSds(temp5))
-    infile$SD <- temp5[, NPOPS+1]
-    infile <- infile[with(infile, order(Group, -SD)), ]
-    infile = infile[!duplicated(infile$Group),]
-    infile$SD <- NULL
-    detach("package:matrixStats", unload=TRUE)
+    reference = as.data.frame(1:nrow(infile))
+    reference$V1 = "p"
+	reference=reference$V1
   }
   
   if (method == "random") {
+    infile$R=NULL
+    infile$V2=NULL
     infile$RAND <- sample(100, size = nrow(infile), replace = TRUE)
     infile <- infile[with(infile, order(Group, -RAND)), ]
     infile = infile[!duplicated(infile$Group),]
     infile$RAND <- NULL
+    reference = infile$V3
+    infile$V3=NULL
   }
   
   if (method == "rangemax") {
-    infile <- infile[with(infile, order(Group, R)), ]
+    infile$V2=NULL
+    infile <- infile[with(infile, order(Group, -R)), ]
     infile = infile[!duplicated(infile$Group),]
+	infile$R=NULL
+    reference=infile$V3
+    infile$V3=NULL
   }
   
   if (method == "rangemin") {
-    infile <- infile[with(infile, order(Group, -R)), ]
+        infile$V2=NULL
+    infile <- infile[with(infile, order(Group, R)), ]
     infile = infile[!duplicated(infile$Group),]
+	infile$R=NULL
+    reference = infile$V3
+        infile$V3=NULL
   }
   
   if (method == "first") {
-    infile <- infile[with(infile, order(Group, -POS)), ]
+    infile$R=NULL
+    infile <- infile[with(infile, order(Group, V2)), ]
     infile = infile[!duplicated(infile$Group),]
+    infile$V2=NULL
+    reference = infile$V3
+    infile$V3=NULL
   }
-  if (method == "none") {
-    infile <- infile[with(infile, order(Group, -POS)), ]
-    infile = infile[!duplicated(infile$Group),]
-  }
-}
 
 
-print("R ALERT: Doing the phylogenetics...")
+  if (method == "last") {
+    infile$R=NULL
+    infile <- infile[with(infile, order(Group, -V2)), ]
+    infile = infile[!duplicated(infile$Group),]
+    infile$V2=NULL
+    reference = infile$V3
+    infile$V3=NULL
+  }
 rownames(infile) <- infile$Group
 infile$Group = NULL
 colnames(infile) <- cnames
+}
+
+#remove excess columns
+
+if (win.size == 1) {
+infile$V3=NULL
+infile$V2=NULL
+infile$Group = NULL
+infile$R = NULL
+colnames(infile) <- cnames
+}
+
+if (win.size > 1) {
+	paleter=paste0("R ALERT: Creating subset frequency table: ", win.size, " bp win size with combine method= ", method)
+	print(paleter)
+	outnamesub <- paste0(outdir,"/", alertname2, "_subset.fz")
+	outfile= as.data.frame(denZI[,1:2])
+	outfile$V3=reference
+	in2=round(infile,3)
+	outfile=cbind(outfile,in2)
+	colnames(outfile)[3] <- "Ref"
+	write.table(outfile, file=outnamesub , sep='\t',row.names= FALSE, quote=FALSE, col.names=TRUE)
+}
+
+
+print("R ALERT: Creating PCA...")
+
+forPCA <- infile
+
+pca1 = prcomp(forPCA, scale = TRUE)
+
+
+#Calculate variance explained
+pca.eig= pca1$sdev^2
+ax1 <-round((pca.eig[1] / sum(pca.eig)*100), digits=1)
+ax2 <-round((pca.eig[2] / sum(pca.eig)*100), digits=1)
+ax1 <- paste ("PC1 ","(", ax1,"%",")", sep= "")
+ax2 <- paste ("PC2 ","(", ax2,"%",")", sep= "")
+
+#Select PC1 and 2 for graphing
+plotting = as.data.frame(pca1$rotation[,1:2])
+
+#Make custom Y offset for text
+plottingL = plotting
+offS = (max(plotting$PC2) - min(plotting$PC2)) * 0.05
+plottingL$PC2 = plottingL$PC2 - offS
+
+#make color funcitons
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+bluefunc <- colorRampPalette(c("red","orange","green"))
+ctable= as.data.frame(bluefunc(20))
+
+#create sequence bases on 10 color category
+coloRZ=seq(from= -.1, to= 1.1, length.out = 21)
+ctable$from= coloRZ[1:nrow(ctable)]
+ctable$to= coloRZ[2:(nrow(ctable)+1)]
+
+#Apply colors to PC values by bins
+plotting2=plotting
+plotting2$to = range01(plotting2$PC1)
+plotting2$from = range01(plotting2$PC1)
+setDT(ctable)
+setDT(plotting2)
+setkey(ctable, from, to)
+ans = foverlaps(plotting2, ctable, type="any")
+clist<-as.vector(ans[[1]])
+plotting$clr=paste0(clist,50)
+plotting = as.data.frame(plotting)
+##now Y
+plotting2=plotting
+plotting2$to = range01(plotting2$PC2)
+plotting2$from = range01(plotting2$PC2)
+setDT(ctable)
+setDT(plotting2)
+setkey(ctable, from, to)
+ans = foverlaps(plotting2, ctable, type="any")
+clist<-as.vector(ans[[1]])
+plotting$clr2=paste0(clist,50)
+plotting = as.data.frame(plotting)
+#Expand graph limits by 5%
+expandY = (max(plotting$PC2) - min(plotting$PC2)) * 0.05
+expandX = (max(plotting$PC1) - min(plotting$PC1)) * 0.05
+#Plot 
+
+
+outname4 <- paste0(outdir,"/", alertname2, "_PCA.pdf")
+pdf(outname4 , width = 10, height = 8)
+plot(plotting$PC1, plotting$PC2, pch = 20, cex =3, xlab= ax1, ylab =ax2, 
+     xlim =c(min(plotting$PC1) - expandX, max(plotting$PC1) + expandX ),
+     ylim =c(min(plotting$PC2) - expandY, max(plotting$PC2) + expandY ),
+     col=plotting$clr)
+  points(plotting$PC1, plotting$PC2, pch = 20, cex =3,col=plotting$clr2)
+  points(plotting$PC1, plotting$PC2, pch = 20, cex =3,col=plotting$clr2)
+  text(plottingL$PC1,plottingL$PC2, cnames)
+invisible(dev.off())
+
+
+print("R ALERT: Doing the phylogenetics...")
 
 	if (NPOPS <3){
 		print("R ALERT: Must have >2 populations to make NJ tree. Skipping..")
@@ -169,7 +274,7 @@ colnames(infile) <- cnames
 if (NPOPS >2){
   print("R ALERT: Proceeding with NJ tree")
 affile<-t(infile)
-options(warn=-1)
+
 # Get distance tree (manhattan = absolute distance between vectors)
 
 smdist<- function (x, method = 1, diag = FALSE, upper = FALSE) 
@@ -245,7 +350,6 @@ smdist<- function (x, method = 1, diag = FALSE, upper = FALSE)
   return(d)
 }
 
-options(warn=0)
 
 estimate_tr <- function(m) nj(smdist(m, method= 1))
 
@@ -266,13 +370,17 @@ outname2 <- paste0(outdir,"/", alertname2, "_consensus.pdf")
   plot(phy, type = "u")
   nodelabels(bs$BP)
   add.scale.bar()
+  tiplabels(pch=20, col=plotting$clr, cex=3)
+  tiplabels(pch=20, col=plotting$cl2, cex=3)
 invisible(dev.off())
 
 outname3 <- paste0(outdir,"/", alertname2, "_single.pdf")
-  pdf(outname3 , width = 10, height = 8)
+ pdf(outname3 , width = 10, height = 8)
   plot(point_est, type = "u")
   nodelabels(bs$BP)
   add.scale.bar()
+  tiplabels(pch=20, col=plotting$clr, cex=3)
+  tiplabels(pch=20, col=plotting$cl2, cex=3)
 invisible(dev.off())
 }
 

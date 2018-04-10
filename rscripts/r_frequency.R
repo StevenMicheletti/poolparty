@@ -57,6 +57,7 @@ print("R ALERT: Formatting file and calculating summary stats")
   Var <- list()
     for (i in (1:npops)) {
       Var[[i]] <-counts[, thebseq[i]:thetseq[i]]
+	gc()
     }
 
   #Get coverage at position ( skip if normalized file)
@@ -66,6 +67,7 @@ print("R ALERT: Formatting file and calculating summary stats")
  		 Dcov <- data.frame(matrix(, nrow = L, ncol = npops))
      			 for (i in (1:length(Var))) {
        				 Dcov[[i]] <- rowSums(Var[[i]])
+				gc()
     				}
   		colnames(Dcov) <- c(1:npops)
   		Dcov$Total <- rowSums(Dcov)
@@ -92,9 +94,10 @@ print("R ALERT: Noting potential paralogs (>3 alleles per position)")
     MVar <- list()
     for (i in (1: npops)) {
      MVar[[i]] <- as.matrix(Var[[i]][,1:4])
-      MCNT[[i]] <- rowSums2(MVar[[i]] > 0)
+      MCNT[[i]] <- rowSums(MVar[[i]] >0 )
       MCNT[[i]] <- as.data.frame(MCNT[[i]])
       MCNT[[i]] <-rapply(MCNT[[i]], function(x) ifelse(x > 2,1,0), how = "replace")
+	gc()
     }
     
   PolY <-  Reduce("+", MCNT) 
@@ -111,6 +114,7 @@ print("R ALERT: Noting potential paralogs (>3 alleles per position)")
   MaxC <- list()
     for (i in (1: npops)) {
        MaxC[[i]] <- colnames(Var[[i]])[max.col(Var[[i]],ties.method="first")]
+	gc()
     }
 
 
@@ -118,6 +122,7 @@ print("R ALERT: Noting potential paralogs (>3 alleles per position)")
   MaxN <- list()
     for (i in (1: npops)) {
        MaxN[[i]] <- colnames(VarN[[i]])[max.col(VarN[[i]],ties.method="first")]
+	gc()
     }
   
   #Make nucleotide list into data frame, printing the primary allele for each population
