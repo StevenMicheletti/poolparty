@@ -1,0 +1,21 @@
+
+------------------------
+Version 0.76, 4/10/2018
+------------------------
+
+Added new utility bash and R scripts for additional analyses:
+- PPmanhat, with r_plotter.R
+- PPrunls, with r_localscore.R
+- PPrunflk, with r_FLKu.R
+- PPruncmh
+- PPsubset
+
+-Updated example documentation
+-Fixed a common error in Rscript due to antiquated notation in MaxtrixStats
+-Added a check for mkfifo in PPalign and PPstats
+-Changed certain instances of awk to gawk which fixed memory issues for some users
+-Added PCA to r_structure.R
+-PPalign no longer writes full temporary mpileup, instead uses process substitution to filter while creating mpileups 
+-Set pipefail for scripts to exit upon any errors
+-Additional minor bug fixes
+
