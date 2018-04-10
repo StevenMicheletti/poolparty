@@ -1,7 +1,9 @@
 #!/bin/bash
 
-#PoolParty_align_v0.32
+#PoolParty_align_v0.76
 #By Steven Micheletti
+
+set -o pipefail
 
 BASEDIR=$(dirname "$0")
 
@@ -14,7 +16,7 @@ echo $BASEDIR
 
 if  ( [[ $(echo $1)  = "" ]] )  ; then
 	echo "ERROR: You must provide a config file after the PPalign command"
-	echo "for example, PPalign poolparty_align.config"
+	echo "for example, PPalign example_align.config"
 	exit
 fi
 	echo "ALERT: $1 has been specified as the configuration file"
@@ -154,6 +156,20 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 			echo "R should initiate when 'Rscript' is typed in terminal"
 			exit
 		fi
+	#Check for piping ability 
+		if  [[ $(command -v mkfifo)  = "" ]] ; then
+			echo "WARNING: piping 'mkfifo' not detected on system or available on drive. This may cause issues in downstream analyses"
+			echo "Edit PPalign.sh and redirect mkfifo to another drive"
+		fi
+	#check for gawk
+		if  [[ $(command -v gawk)  = "" ]] ; then
+			echo "ERROR: gawk not detected on system. gawk is usually standard on Linux systems. Install then retry"
+			exit
+		fi
+	#Check for process substitution 
+		if  [[ $(command -v cat <(date); echo $? )  = "" ]] ; then
+			echo "WARNING: process substitution does not appear to be working on this system. Errors may arise"
+		fi
 	#Load R to check for dependencies 
 		if  [[ -f $OUTDIR/R_ERROR.txt ]] ; then
 			rm $OUTDIR/R_ERROR.txt 
@@ -177,7 +193,8 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 #Copy configuration file so you know what you did later
 	cp $1 ${OUTDIR}/${OUTPOP}_${RUNDATE}.config
 
-#Sort sample list to get mate pairs in correct order
+#Remove any potential extra characters (/r) and sort  samplelist.txt
+	awk '{ sub("\r$", ""); print $0 }'  ${INDIR}/"samplelist.txt" > ${INDIR}/samplelist.tmp && mv ${INDIR}/samplelist.tmp ${INDIR}/samplelist.txt
 	sort -f ${INDIR}/"samplelist.txt" | awk '{print $1}' | grep -P -v '^\s*$' >  $OUTDIR/${OUTPOP}_sample_files.txt
 	sort -f ${INDIR}/"samplelist.txt" | awk '{print $2}' | grep -P -v '^\s*$' > $OUTDIR/${OUTPOP}_sample_pops.txt
 	FILES=$(cat $OUTDIR/${OUTPOP}_sample_files.txt)
@@ -187,6 +204,7 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 			#Ensure each sample has been given a population designation
 			if [[ $aCHCK1 != $aCHCK2  ]] ; then
 				echo "ERROR: Something wrong with samplelist.txt. $aCHCK1 samples but only $aCHCK2 population designations.."
+				echo "Check for empty lines in samplelist.txt"
 				exit
 			fi
 
@@ -232,6 +250,8 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 		f=${array2[i]}
 		oZ=$(echo $e $f)
 		echo ${oZ} >> $OUTDIR/${OUTPOP}_poplist.txt
+		#remove any introduced characters
+		awk '{ sub("\r$", ""); print $0 }'  $OUTDIR/${OUTPOP}_poplist.txt > $OUTDIR/${OUTPOP}_poplist.tmp && mv $OUTDIR/${OUTPOP}_poplist.tmp $OUTDIR/${OUTPOP}_poplist.txt
 	done
 		rm $OUTDIR/${OUTPOP}_sample_pops.txt
 		rm $OUTDIR/${OUTPOP}_sample_files.txt
@@ -264,6 +284,7 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 	awk '{print $1 > "'${OUTDIR}/pops/pop_'"$2".txt"}' $OUTDIR/${OUTPOP}_poplist.txt
 	popfiles=$(awk '{ a[$2]++ } END { for (b in a) { print b } }' $INDIR/"samplelist.txt")
 	printf '%s\n' "${popfiles[@]}" | awk '{print "pop_" $0;}' | sort > ${OUTDIR}/pops/${OUTPOP}_files_for_pops.txt
+	awk '{ sub("\r$", ""); print $0 }'  ${OUTDIR}/pops/${OUTPOP}_files_for_pops.txt > ${OUTDIR}/pops/${OUTPOP}_files_for_pops.tmp && mv ${OUTDIR}/pops/${OUTPOP}_files_for_pops.tmp ${OUTDIR}/pops/${OUTPOP}_files_for_pops.txt
 
 #Trim by quality score, uses BBMAP (java-based)
 ##! ADDITIONAL TRIM PARAMETERS CAN BE ADDED BELOW AFTER "${BBMAPDIR}/bbduk.sh" !##
@@ -294,12 +315,14 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 		fi
 	done
 
+		#remove weird characters from names
+		awk '{ sub("\r$", ""); print $0 }'  $OUTDIR/${OUTPOP}_names.txt > $OUTDIR/${OUTPOP}_names.tmp && mv $OUTDIR/${OUTPOP}_names.tmp $OUTDIR/${OUTPOP}_names.txt
+	
 	#Check that trimmed folder was written to
 	if [ -z "$(ls -A ${OUTDIR}/trimmed)" ]; then
 		echo "ERROR: No trimmed files were produced. Check input files."
 		exit
 	fi
-
 
 	if [[ "$QUALREPORT" =~(on)$ ]] ; then
 	# Quality report of trimmed files (FASTQC). This runs in the background as alignments are produced
@@ -386,7 +409,7 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 		fi
 		done &
 
-#Create semaphore to parallel run at specified 'THREADZ' 
+#Create semaphore to parallel run at specified 'THREADZ'
 	open_sem(){
 			mkfifo pipe-$$
 			exec 3<>pipe-$$
@@ -465,12 +488,11 @@ task() {
 	done ; wait
 	echo "ALERT: Samtools finished merging all bams at $(date) "
 
-	
-	
 #Call SNPs and print variant sites
-	echo "ALERT: Samtools and bcftools are calling SNPs and creating mpileup at $(date)"
+	echo "ALERT: bcftools is calling variants  at $(date) this might take awhile..."
 	COMBINE=$(sed 's,^,'$OUTDIR/BAM/', ; s/$/.bam/' $OUTDIR/pops/${OUTPOP}_files_for_pops.txt)
-
+	echo "ALERT: See ${OUTPOP}_files_for_pops.txt for population merge order"
+	
 	 if [[ -f $OUTDIR/${OUTPOP}_variants.txt ]] ; then
 		echo "ALERT: ${OUTPOP}_variants.txt already exists, skipping variant calling "
 	 else
@@ -480,16 +502,7 @@ task() {
 			mkdir $OUTDIR/filters
 		fi
 		
-		 ${SAMTOOLS} mpileup -f ${GENOME} -B $COMBINE |  grep -Ev $'^\t|\t\t|\t$'  >  $OUTDIR/${OUTPOP}_temp.mpileup &  PIDMIX=$!
-		 ${SAMTOOLS} mpileup -uf ${GENOME} -B $COMBINE |  ${BCFTOOLS} call --threads ${THREADZ} -mv -Ov >  $OUTDIR/${OUTPOP}_full.VCF &  PIDIOS=$!
-			wait $PIDIOS
-			wait $PIDMIX
-			
-		if [[ -s ${OUTPOP}_full.VCF ]] ; then
-			echo "ERROR: Variants were not called, $OUTDIR/${OUTPOP}_full.VCF was not produced. Check for sufficient memory"
-			exit
-		fi
-		
+			${SAMTOOLS} mpileup -uf ${GENOME} -B $COMBINE |  ${BCFTOOLS} call --threads ${THREADZ} -mv -Ov >  $OUTDIR/${OUTPOP}_full.VCF 
 				declare -i before=$(grep -v "^#" $OUTDIR/${OUTPOP}_full.VCF | wc -l)
 				echo "ALERT: $before SNPs total SNPS called without filters"
 			${BCFTOOLS} view  -i  'MIN(DP)>'$MINDP' & MIN(QUAL)>'$SNPQ' ' $OUTDIR/${OUTPOP}_full.VCF  > $OUTDIR/${OUTPOP}_Qualtemp.VCF
@@ -504,7 +517,7 @@ task() {
 				grep -v "^#"  $OUTDIR/${OUTPOP}.VCF | awk '{gsub("=|;", "\t", $0); print;}' \
 						| awk '{print $1,$2,$6,$9}'  >  $OUTDIR/${OUTPOP}_variants.txt
 			
-		if [[  -s ${OUTPOP}_full.VCF ]] ; then
+		if [[ ! -s $OUTDIR/${OUTPOP}_full.VCF ]] ; then
 			echo "ERROR: Variants were not filtered, $OUTDIR/${OUTPOP}_variants.txt was not produced. Check for sufficient memory"
 			exit
 		fi
@@ -517,48 +530,60 @@ task() {
 				numINDEL=$(wc -l $OUTDIR/filters/${OUTPOP}_indel_variants.txt |  cut -f1 -d' ')
 
 		echo "ALERT: Of the remaining SNPs, there are $numSNP SNPs and $numINDEL INDels"
-		echo "ALERT: mpileup is being reduced to variants and for stat purposes at $(date)"
+		echo "ALERT: Variant calling and filtering done at $(date) "
+	fi
+	
+	if [[ -f  $OUTDIR/${OUTPOP}.mpileup ]] ; then
+		echo "ALERT: ${OUTPOP}.mpileup already exists, skipping mpileup creation calling "
+	 else
+
+		echo "ALERT: mpileups are being created at  $(date)"
 		
 			#Get Columns of mpileup and determine population number
-				declare -i NCOL=$(awk '{ print NF; exit }' $OUTDIR/${OUTPOP}_temp.mpileup)
-				declare -i NPOPS=($NCOL-3)/3
+			declare -i NCOL=$(($parraynum * 3 + 3))
 			# Start at 3, increment by NPOPS until NCOL, i.e, get column of each pop
-				POPSEQ=$(seq 4 3 $NCOL)
-				POPNUM=$(seq 1 $NPOPS)
+			POPSEQ=$(seq 4 3 $NCOL)
 			#Select columns to run analyses on 
-				declare -a arr2=($POPSEQ)
+			declare -a arr2=($POPSEQ)
 			#Subset
-				ONE=$(echo $POPSEQ | sed -r 's/([^ ]+)/$\1/g')
-				TWO=$(echo $ONE | awk '$NF=$NF "}" ' OFS=",")
-				THREE='{print $1,$2,$3,'
-				FOUR=$(echo ${THREE}${TWO})	
-				awk "$FOUR" $OUTDIR/${OUTPOP}_temp.mpileup > $OUTDIR/${OUTPOP}_stats.mpileup & PIDIOZ=$!
-				awk 'NR==FNR{a[$1,$2]=$5;next} ($1,$2) in a{print $0, a[$1,$2]}' $OUTDIR/${OUTPOP}_variants.txt $OUTDIR/${OUTPOP}_temp.mpileup \
-						| awk '{gsub(" ","",$0); print;}' > $OUTDIR/${OUTPOP}.mpileup &  PIDMIY=$!
-			wait $PIDIOZ
-			wait $PIDMIY
-		#REMOVE LARGE MPILEUP
-		rm $OUTDIR/${OUTPOP}_temp.mpileup
-	 fi
-		echo "ALERT: Variants finished calling and mpileup created at $(date)"
-
+			ONE=$(echo $POPSEQ | sed -r 's/([^ ]+)/$\1/g')
+			TWO=$(echo $ONE | awk '$NF=$NF "}" ' OFS=",")
+			THREE='{print $1,$2,$3,'
+			FOUR=$(echo ${THREE}${TWO})	
+			${SAMTOOLS} mpileup -f ${GENOME} -B $COMBINE | awk "$FOUR"  > $OUTDIR/${OUTPOP}_stats.mpileup &  PIDMIX=$!
+			gawk 'NR==FNR{a[$1,$2]=$5;next} ($1,$2) in a{print $0, a[$1,$2]}' <(awk '{print $0}' $OUTDIR/${OUTPOP}_variants.txt) <(${SAMTOOLS} mpileup -f ${GENOME} -B $COMBINE)| awk '{gsub(" ","",$0); print;}' > $OUTDIR/${OUTPOP}.mpileup &  PIDIOS=$!
+			wait $PIDIOS
+			wait $PIDMIX
+			echo "ALERT: Mpileups created at $(date)"
+	fi
+	
+		if [[ ! -s $OUTDIR/${OUTPOP}.mpileup ]]  ; then
+			echo "ERROR: Mpileup is empty. Check for sufficient memory during samtools mpileup"
+			exit
+		fi
+		
 	#Filter by indels and create sync format
 		echo "ALERT: Identifying indel regions and creating sync format at $(date)"
 			if [[ -f $OUTDIR/${OUTPOP}.sync ]] ; then
 				echo "ALERT: Filtered sync file already exists, skipping this step "
 			else
 				perl ${POOL2}/indel_filtering/identify-indel-regions.pl --input $OUTDIR/${OUTPOP}.mpileup --indel-window $INWIN --output ${OUTDIR}/${OUTPOP}.gtffile --min-count 1
-				nice -n 19 java -ea -${KMEM} -Djava.io.tmpdir=`pwd`/tmp -jar ${POOL2}/mpileup2sync.jar --min-qual 1 --fastq-type sanger --input $OUTDIR/${OUTPOP}.mpileup --output $OUTDIR/${OUTPOP}_temp.sync --threads $THREADZ 		
+				nice -n 19 java -ea -${KMEM} -Djava.io.tmpdir=`pwd`/tmp -jar ${POOL2}/mpileup2sync.jar --min-qual 1 --fastq-type sanger --input $OUTDIR/${OUTPOP}.mpileup --output $OUTDIR/${OUTPOP}_temp.sync --threads $THREADZ 
 				perl ${POOL2}/indel_filtering/filter-sync-by-gtf.pl --input ${OUTDIR}/${OUTPOP}_temp.sync --gtf ${OUTDIR}/${OUTPOP}.gtffile --output ${OUTDIR}/${OUTPOP}.sync
 			echo "ALERT: Done identifying indel regions and creating sync format at $(date)"
 				declare -i before=$(wc -l < $OUTDIR/${OUTPOP}_temp.sync )
 				declare -i after=$(wc -l < $OUTDIR/${OUTPOP}.sync)
 				declare -i lost="$(($before - $after))"
 				lostp=$((100-100*$after/$before))
-				echo "ALERT: With an indel window of $INWIN bp you lost $lost SNPs ($lostp%) " 
+				echo "ALERT: With an indel window of $INWIN bp you lost $lost SNPs or $lostp % " 
 				rm $OUTDIR/${OUTPOP}_temp.sync 
 			fi				
-
+			
+		if [[ ! -s $OUTDIR/${OUTPOP}.sync  ]]  ; then
+			echo "ERROR: Sync is empty. Check for sufficient memory during popoolation2 pl scripts"
+			exit
+		fi
+	
 # For each population listed in _files_for_pops, combined the filtered bam for individuals in that file as mpileups, while only keeping variants With parrelization
 if [[ "$INDCONT" =~(on)$ ]] ; then
 
@@ -573,7 +598,7 @@ if [[ "$INDCONT" =~(on)$ ]] ; then
 		else
 			#Combine all individuals from same population into same mpileup
 			COMBINE=$(sed 's,^,'$OUTDIR/BAM/', ; s/$/_filtered.bam/' ${OUTDIR}/pops/$file.txt)
-			awk 'NR==FNR{a[$1,$2]=$5;next} ($1,$2) in a{print $0, a[$1,$2]}' <(awk '{print $0}' ${OUTDIR}/${OUTPOP}_variants.txt) <(${SAMTOOLS} mpileup -aa -f ${GENOME} -B $COMBINE) | awk '{gsub(" ","",$0); print;}' > $OUTDIR/inds/${file}.mpileup
+			gawk 'NR==FNR{a[$1,$2]=$5;next} ($1,$2) in a{print $0, a[$1,$2]}' <(awk '{print $0}' ${OUTDIR}/${OUTPOP}_variants.txt) <(${SAMTOOLS} mpileup -aa -f ${GENOME} -B $COMBINE) | awk '{gsub(" ","",$0); print;}' > $OUTDIR/inds/${file}.mpileup
 		fi
 	}
 
@@ -639,7 +664,6 @@ if [[ "$INDCONT" =~(on)$ ]] ; then
 		done
 		echo "ALERT: Rscript stats done at $(date) "
 		rm $OUTDIR/inds/*RindSTATs.rin
-		
 
 	#REQUIRES R: Standardize mpileups
 		echo "ALERT: Rscript called to standardize syncs at $(date) "
@@ -666,7 +690,7 @@ if [[ "$INDCONT" =~(on)$ ]] ; then
   				echo ${ITER} = ${namez%*_norm.sync}
 				ITER="$(($ITER + 1))"
 			done	
-			
+
 	
 	#Combine standardized mpileup into new sync
 			if [[ -f $OUTDIR/${OUTPOP}_norm.sync ]] ; then
@@ -687,10 +711,9 @@ if [[ "$INDCONT" =~(on)$ ]] ; then
 					declare -i after=$(wc -l < ${OUTDIR}/${OUTPOP}_norm.sync)
 					declare -i lost="$(($before - $after))"
 				lostp=$((100-100*$after/$before))
-					echo "ALERT: With an indel window of $INWIN bp you lost $lost SNPs ($lostp%)" 
+					echo "ALERT: With an indel window of $INWIN bp you lost $lost SNPs or $lostp %" 
 					rm $OUTDIR/${OUTPOP}_norm_temp.sync
 			fi
-
 fi
 
 echo  "ALERT: Alignment and data creation step finished at $(date) "
@@ -707,6 +730,11 @@ echo "ALERT: Creating allele frequency tables in R"
 					Rscript $BASEDIR/rscripts/r_frequency.R $rin $rout $rout2 $MAF
 					echo "ALERT: Frequency file ${OUTPOP}_full.fz and its counterparts created at $(date) "
 				fi
+				
+				if [[ ! -s ${OUTDIR}/${OUTPOP}_full.fz  ]]  ; then
+					echo "ERROR: Frequency table is empty. Check for R errors"
+					exit
+				fi
 
 				if [[ "$INDCONT" =~(on)$ ]] ; then
 
@@ -717,11 +745,17 @@ echo "ALERT: Creating allele frequency tables in R"
 						rout=$OUTDIR/
 						rout2=$OUTDIR/filters/
 						Rscript $BASEDIR/rscripts/r_frequency.R $rin $rout $rout2 $MAF $INDCONT
+						if [[ ! -s ${OUTDIR}/${OUTPOP}_norm_full.fz  ]]  ; then
+							echo "ERROR: Normalized frequency table is empty. You likely ran out of memory."
+							echo "Consider reducing number of individuals or SNPs using higher filter thresholds."
+							exit
+						fi
 						echo "ALERT: Frequency file ${OUTPOP}_norm_full.fz and its counterparts created at $(date) "
+					
 					fi
 				fi
 
-echo "ALERT: Phase 1 of PoolParty complete at $(date) "
+echo "ALERT: PPalign complete at $(date) "
 			if [[ -f $OUTDIR/${OUTPOP}.gtffile.params ]] ; then
 					rm $OUTDIR/${OUTPOP}.gtffile.params
 			fi
@@ -731,4 +765,3 @@ echo "ALERT: Phase 1 of PoolParty complete at $(date) "
 			if [[ -f $OUTDIR/${OUTPOP}_norm.sync.params ]] ; then
 					rm $OUTDIR/${OUTPOP}_norm.sync.params
 			fi
-exit

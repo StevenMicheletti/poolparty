@@ -6,11 +6,14 @@ BASEDIR=$(dirname "$0")
 if [[ ${BASEDIR} != *poolparty* ]];then
 	SLOC=$(readlink -f "$0")
 	BASEDIR=${SLOC%/*}
+
+set -o pipefail
+
 fi
 
 if  ( [[ $(echo $1)  = "" ]] )  ; then
 	echo "ERROR: You must provide a config file after the PPanalyze command"
-	echo "for example, PPanalyze poolparty_analyze.config"
+	echo "for example, PPanalyze example_analyze.config"
 	exit
 fi
 
@@ -105,11 +108,10 @@ echo "ALERT: Performing error checking"
 			fi
 		fi
 		if [[ "$NJTREE" == "on" ]]  ; then
-			if [[ "$METHOD" != "mean" ]] && [[ "$FSTTYPE" != "sdmax" ]] \
-				&& [[ "$METHOD" != "sdmin" ]] &&  [[ "$METHOD" != "random" ]] \
+			if [[ "$METHOD" != "mean" ]] &&  [[ "$METHOD" != "random" ]] \
 				&& [[ "$METHOD" != "rangemax" ]] && [[ "$METHOD" != "rangemin" ]] \
-				&& [[ "$METHOD" != "first" ]] && [[ "$METHOD" != "none" ]]	; then
-				echo "ERROR: Wrong Parameters: NJ Combine method type must be mean, sdmax, sdmin, random, rangemax, rangemin, first, or none"
+				&& [[ "$METHOD" != "first" ]] && [[ "$METHOD" != "last" ]]	; then
+				echo "ERROR: Wrong Parameters: NJ Combine method type must be mean, random, rangemax, rangemin, first, or last"
 				exit
 			fi
 			if  [[ ! "$AFFILT" =~ ^[+-]?[0-9]+\.?[0-9]*$  ]]  ; then
@@ -181,8 +183,8 @@ pseq=$(printf '%0.s3 ' $(seq 1 $NPOPS))
 		
 	echo "ALERT: Pops $POPS2 are now in the order of $newORD in the subset sync file"
 	
-		if  [[ -f ${OUTDIR}/temp/${PREFIX}_avoidcols.txt ]] ; then
-			rm ${OUTDIR}/temp/${PREFIX}_avoidcols.txt
+		if  [[ -f ${OUTDIR}/${PREFIX}_avoidcols.txt ]] ; then
+			rm ${OUTDIR}/${PREFIX}_avoidcols.txt
 		fi	
 	
 		#Get names of columns to ignore by finding all possible combinations of similar populations
@@ -191,75 +193,99 @@ pseq=$(printf '%0.s3 ' $(seq 1 $NPOPS))
 			for a; do
 				shift
 			for b; do
-				printf "%s:%s\n" "$a" "$b" >> ${OUTDIR}/temp/${PREFIX}_avoidcols.txt
+				printf "%s:%s\n" "$a" "$b" >> ${OUTDIR}/${PREFIX}_avoidcols.txt
 			done
 			done
 		done <${OUTDIR}/temp/${PREFIX}_expressionlist.txt
 
-#Create array adding column offset to each to filter sync file by specified populations
-TSO1=$(date +%s | sha256sum | base64 | head -c 10 ; echo)
-declare -a colarray=()
-	for i in "${arr2[@]}" ; do
-		colarray+=( "$(( 3 + $i ))" )
-	done
-		bar=$(printf "\n%s\n" "${colarray[@]}")
-				ONE=$(echo $bar| sed -r 's/([^ ]+)/$\1/g')
-				TWO=$(echo $ONE | awk '$NF=$NF "}" ' OFS=",")
-				THREE='{print $1,$2,$3,'
-				FOUR=$(echo ${THREE}${TWO})	
-		awk "$FOUR" ${SYNC} > $OUTDIR/temp/${PREFIX}_$TSO1
-		#subset sync created
 
-# Get coverage whitelist using coverage range for all files specified 
-TSO2=$(date +%s | sha256sum | base64 | head -c 9 ; echo)
-declare -a covarray=()
-	for i in "${arr2[@]}" ; do
-		covarray+=( "$(( 2 + $i ))" )
-	done
-		bar2=$(printf "\n%s\n" "${covarray[@]}")
-			ONE=$(echo $bar2| sed -r 's/([^ ]+)/$\1/g')
-			TWO=$(echo $ONE | awk '$NF=$NF " >= '$MINCOV' && "' OFS=" >= $MINCOV && ")
-			THREE=$(echo $ONE | awk '$NF=$NF " <= '$MAXCOV'"' OFS=" <= $MAXCOV && ")
-			FOUR=$(echo $TWO$THREE)
-		tail -n +2 $FZFILE | awk  "$FOUR" $COVFILE | awk '{print $1,$2}' > $OUTDIR/temp/${PREFIX}_$TSO2
-		#subset coverage sync file created
+if [[ -f $OUTDIR/${PREFIX}.sync ]] ; then
+	echo "ALERT: ${PREFIX}.sync exists; will not subset file"
+	echo "ALERT: Grabbing information from .sync file"
+	# Freq file, run through R to get final MAF for populations being compared(black list)
+	TSO3=$(date +%s | sha256sum | base64 | head -c 8 ; echo)
+	declare -a fzarray=()
+		for i in "${arr2[@]}" ; do
+			fzarray+=( "$(( 4 + $i ))" )
+		done
+			bar3=$(printf "\n%s\n" "${fzarray[@]}")
+			ONE=$(echo $bar3| sed -r 's/([^ ]+)/$\1/g')
+					TWO=$(echo $ONE | awk '$NF=$NF "}" ' OFS=",")
+					THREE='{print $1,$2,$3,'
+					FOUR=$(echo ${THREE}${TWO})	
+			awk "$FOUR" $FZFILE > $OUTDIR/temp/${PREFIX}_$TSO3
 		
-# Freq file, run through R to get final MAF for populations being compared(black list)
-TSO3=$(date +%s | sha256sum | base64 | head -c 8 ; echo)
-declare -a fzarray=()
-	for i in "${arr2[@]}" ; do
-		fzarray+=( "$(( 4 + $i ))" )
-	done
-		bar3=$(printf "\n%s\n" "${fzarray[@]}")
-		ONE=$(echo $bar3| sed -r 's/([^ ]+)/$\1/g')
-				TWO=$(echo $ONE | awk '$NF=$NF "}" ' OFS=",")
-				THREE='{print $1,$2,$3,'
-				FOUR=$(echo ${THREE}${TWO})	
-		awk "$FOUR" $FZFILE > $OUTDIR/temp/${PREFIX}_$TSO3
+	#Call Rscript
+		echo "ALERT: Calculating comparison-specific MAF at $(date)"
+				rin=$OUTDIR/temp/${PREFIX}_$TSO3
+				rout=$OUTDIR/temp/
+				Rscript $BASEDIR/rscripts/r_anal_maf.R  $rin $rout $MAF
+else
+	#Create array adding column offset to each to filter sync file by specified populations
+	TSO1=$(date +%s | sha256sum | base64 | head -c 10 ; echo)
+	declare -a colarray=()
+		for i in "${arr2[@]}" ; do
+			colarray+=( "$(( 3 + $i ))" )
+		done
+			bar=$(printf "\n%s\n" "${colarray[@]}")
+					ONE=$(echo $bar| sed -r 's/([^ ]+)/$\1/g')
+					TWO=$(echo $ONE | awk '$NF=$NF "}" ' OFS=",")
+					THREE='{print $1,$2,$3,'
+					FOUR=$(echo ${THREE}${TWO})	
+			awk "$FOUR" ${SYNC} > $OUTDIR/temp/${PREFIX}_$TSO1
+			#subset sync created
+
+	# Get coverage whitelist using coverage range for all files specified 
+	TSO2=$(date +%s | sha256sum | base64 | head -c 9 ; echo)
+	declare -a covarray=()
+		for i in "${arr2[@]}" ; do
+			covarray+=( "$(( 2 + $i ))" )
+		done
+			bar2=$(printf "\n%s\n" "${covarray[@]}")
+				ONE=$(echo $bar2| sed -r 's/([^ ]+)/$\1/g')
+				TWO=$(echo $ONE | awk '$NF=$NF " >= '$MINCOV' && "' OFS=" >= $MINCOV && ")
+				THREE=$(echo $ONE | awk '$NF=$NF " <= '$MAXCOV'"' OFS=" <= $MAXCOV && ")
+				FOUR=$(echo $TWO$THREE)
+			tail -n +2 $FZFILE | awk  "$FOUR" $COVFILE | awk '{print $1,$2}' > $OUTDIR/temp/${PREFIX}_$TSO2
+			#subset coverage sync file created
 		
-#Call Rscript
-	echo "ALERT: Calculating comparison-specific MAF at $(date)"
-			rin=$OUTDIR/temp/${PREFIX}_$TSO3
-			rout=$OUTDIR/temp/
-			Rscript $BASEDIR/rscripts/r_anal_maf.R  $rin $rout $MAF
+	# Freq file, run through R to get final MAF for populations being compared(black list)
+	TSO3=$(date +%s | sha256sum | base64 | head -c 8 ; echo)
+	declare -a fzarray=()
+		for i in "${arr2[@]}" ; do
+			fzarray+=( "$(( 4 + $i ))" )
+		done
+			bar3=$(printf "\n%s\n" "${fzarray[@]}")
+			ONE=$(echo $bar3| sed -r 's/([^ ]+)/$\1/g')
+					TWO=$(echo $ONE | awk '$NF=$NF "}" ' OFS=",")
+					THREE='{print $1,$2,$3,'
+					FOUR=$(echo ${THREE}${TWO})	
+			awk "$FOUR" $FZFILE > $OUTDIR/temp/${PREFIX}_$TSO3
+		
+	#Call Rscript
+		echo "ALERT: Calculating comparison-specific MAF at $(date)"
+				rin=$OUTDIR/temp/${PREFIX}_$TSO3
+				rout=$OUTDIR/temp/
+				Rscript $BASEDIR/rscripts/r_anal_maf.R  $rin $rout $MAF
 
-#First Filter by coverage whitelist
-TSO4=$(date +%s | sha256sum | base64 | head -c 5 ; echo)
-	echo "ALERT: Filtering blacklisted markers at $(date)"
-	awk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{print $0, a[$1,$2]}' $OUTDIR/temp/${PREFIX}_$TSO2 $OUTDIR/temp/${PREFIX}_$TSO1 > $OUTDIR/temp/${PREFIX}_$TSO4
-		rm $OUTDIR/temp/${PREFIX}_$TSO2
-		rm $OUTDIR/temp/${PREFIX}_$TSO1
+	#First Filter by coverage whitelist
+	TSO4=$(date +%s | sha256sum | base64 | head -c 5 ; echo)
+		echo "ALERT: Filtering blacklisted markers at $(date)"
+		gawk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{print $0, a[$1,$2]}' $OUTDIR/temp/${PREFIX}_$TSO2 $OUTDIR/temp/${PREFIX}_$TSO1 > $OUTDIR/temp/${PREFIX}_$TSO4
+			rm $OUTDIR/temp/${PREFIX}_$TSO2
+			rm $OUTDIR/temp/${PREFIX}_$TSO1
 
-#Combine blacklist info into one temp file
-TSO5=$(date +%s | sha256sum | base64 | head -c 12 ; echo)
-			cat $OUTDIR/temp/${PREFIX}_${TSO3}_mafBL $BLACKLIST  > $OUTDIR/temp/${PREFIX}_$TSO5
-				BLEN=$(wc -l < $OUTDIR/temp/${PREFIX}_$TSO5 )
-				echo "ALERT: There are $BLEN SNPs marked for removal"
-			awk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{next}{print $0, a[$1,$2]}' $OUTDIR/temp/${PREFIX}_$TSO5  $OUTDIR/temp/${PREFIX}_$TSO4 > $OUTDIR/${PREFIX}.sync
-				rm $OUTDIR/temp/${PREFIX}_$TSO4
-				rm $OUTDIR/temp/${PREFIX}_$TSO5
-				rm $OUTDIR/temp/${PREFIX}_${TSO3}_mafBL
-
+	#Combine blacklist info into one temp file
+	TSO5=$(date +%s | sha256sum | base64 | head -c 12 ; echo)
+				cat $OUTDIR/temp/${PREFIX}_${TSO3}_mafBL $BLACKLIST  > $OUTDIR/temp/${PREFIX}_$TSO5
+					BLEN=$(wc -l < $OUTDIR/temp/${PREFIX}_$TSO5 )
+					echo "ALERT: There are $BLEN SNPs marked for removal"
+				gawk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{next}{print $0, a[$1,$2]}' $OUTDIR/temp/${PREFIX}_$TSO5  $OUTDIR/temp/${PREFIX}_$TSO4 |  awk  '{gsub(" ","\t",$0); print;}' > $OUTDIR/${PREFIX}.sync
+					rm $OUTDIR/temp/${PREFIX}_$TSO4
+					rm $OUTDIR/temp/${PREFIX}_$TSO5
+					FLEN=$(wc -l < $OUTDIR/${PREFIX}.sync )
+ 					echo "ALERT: There are $FLEN SNPs being analyzed after filters"
+fi
 #Run analyses 
 
 	echo "ALERT: Running pairwise analyses at $(date)"
@@ -298,132 +324,179 @@ TSO5=$(date +%s | sha256sum | base64 | head -c 12 ; echo)
 	wait
 		echo "ALERT: All pairwise analyses complete at $(date)"
 
+
 #Chop up results
-		echo "ALERT: Formatting results"
+echo "ALERT: Formatting results"
 if [[ "$FST" =~(on)$ ]]; then
-#Cleanup FST output format, average rows, and produce intuitive format
-	awk '!/=na/' $OUTDIR/${PREFIX}_raw.fst > $OUTDIR/temp/${PREFIX}_rawnona.fst
-		declare -i before=$(wc -l $OUTDIR/${PREFIX}_raw.fst |  cut -f1 -d' ')
-		declare -i after=$(wc -l $OUTDIR/temp/${PREFIX}_rawnona.fst |  cut -f1 -d' ')
-		declare -i loss=$(($before-$after))
-		echo "Alert: $loss SNPs were removed from FST analysis due to Ns or indels in their genotype"
-	cut -d$'\t' -f 1-2 $OUTDIR/temp/${PREFIX}_rawnona.fst | awk '$3=(FNR FS $3)' > $OUTDIR/temp/${PREFIX}_head.fst
-	cut -d$'\t' -f 6- $OUTDIR/temp/${PREFIX}_rawnona.fst > $OUTDIR/temp/${PREFIX}_body.fst
+#Cleanup FST OUTDIR format, average rows, and produce intuitive format
+	awk '$5 >= '$MINCOV' &&  $5  <= '$MAXCOV' ' $OUTDIR/${PREFIX}_raw.fst >  $OUTDIR/temp/${PREFIX}_reclassing.fst
+
+	#Cut up Sfst file
+	cut -d$'\t' -f 1-2 $OUTDIR/temp/${PREFIX}_reclassing.fst | gawk '$3=(FNR FS $3)' > $OUTDIR/temp/${PREFIX}_head.fst
+	cut -d$'\t' -f 6- $OUTDIR/temp/${PREFIX}_reclassing.fst > $OUTDIR/temp/${PREFIX}_body.fst
 	awk 'NR==1{print $0}' $OUTDIR/temp/${PREFIX}_body.fst | awk  '{gsub("=","\t",$0); print;}' |  awk '{ for (i=2;i<=NF;i+=2) $i="" } 1' | awk  '{gsub("  ","\t",$0); print;}' | awk  '{gsub(" ","",$0); print;}'   > $OUTDIR/temp/${PREFIX}_body_heading.fst
 	awk '{gsub("=","\t",$0); print;}' $OUTDIR/temp/${PREFIX}_body.fst | awk '{ for (i=1;i<=NF;i+=2) $i="" } 1' | awk  '{gsub("  ","\t",$0); print;}' | awk  '{gsub(" ","",$0); print;}'  > $OUTDIR/temp/${PREFIX}_body2.fst
 	cat $OUTDIR/temp/${PREFIX}_body_heading.fst $OUTDIR/temp/${PREFIX}_body2.fst > $OUTDIR/temp/${PREFIX}_prep.fst
 
-	if  [[ -f ${OUTDIR}/temp/${PREFIX}_avoidcols.txt ]] ; then
-		COMBLIST2=$(awk '{print}' ORS=' ' ${OUTDIR}/temp/${PREFIX}_avoidcols.txt) 
+	if  [[ -f ${OUTDIR}/${PREFIX}_avoidcols.txt ]] ; then
+		COMBLIST2=$(awk '{print}' ORS=' ' ${OUTDIR}/${PREFIX}_avoidcols.txt) 
 		COMBLIST3=$(echo $COMBLIST2 | sed 's/[^ ][^ ]*/"&"/g')
 			ZERO=$(echo $COMBLIST3 | sed -r 's/([^ ]+)/$i!=\1/g') 
 			TWO=$(echo $ZERO | sed -e 's/ /\  \&\&\ /g')
 			ONE=$(echo " NR==1{for(i=1; i<=NF; i++) if (")
 			THREE=$(echo ' ) {a[i]++;} } { for (i in a) printf "%s\t", $i; printf "\n"} ')
 			FOUR=$(echo ${ONE}${TWO}${THREE})
-			#Use above expression to remove FST columns in similar populations
+			#Use above expression to remove Sfst columns in similar populations
 			awk "$FOUR" $OUTDIR/temp/${PREFIX}_prep.fst > $OUTDIR/temp/${PREFIX}_keep.fst
-			awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_keep.fst | awk '{ s = 0; for (i = 1; i <= NF; i++) s += $i; print $1, (NF > 1) ? s / (NF - 0) : 0; }' | awk '{print $2}' > $OUTDIR/temp/${PREFIX}_keep2.fst
-			#Create final fst file for this analysis.
-			paste $OUTDIR/temp/${PREFIX}_head.fst $OUTDIR/temp/${PREFIX}_keep2.fst | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/${PREFIX}_analysis_fst.txt
-			rm $OUTDIR/temp/*.fst
+			NCOLZ=$(awk '{print NF}' $OUTDIR/temp/${PREFIX}_keep.fst | sort -nu | tail -n 1)
+			if [ "$NCOLZ" -gt 1 ]; then
+				awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_keep.fst | awk '{ s = 0; for (i = 1; i <= NF; i++) s += $i; print $1, (NF > 1) ? s / (NF - 0) : 0; }' | awk '{print $2}' > $OUTDIR/temp/${PREFIX}_keep2.fst
+			else
+				awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_keep.fst > $OUTDIR/temp/${PREFIX}_keep2.fst
+			fi
+
+			#Create final Sfst file for this analysis.
+			paste $OUTDIR/temp/${PREFIX}_head.fst $OUTDIR/temp/${PREFIX}_keep2.fst | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/temp/${PREFIX}_SfstNA.fst
 	else 
 		if [ "$NPOPS" -gt 2 ]; then
 			awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_prep.fst | awk '{ s = 0; for (i = 1; i <= NF; i++) s += $i; print $1, (NF > 1) ? s / (NF - 0) : 0; }' | awk '{print $2}' > $OUTDIR/temp/${PREFIX}_keep2.fst
-			paste $OUTDIR/temp/${PREFIX}_head.fst $OUTDIR/temp/${PREFIX}_keep2.fst | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/${PREFIX}_analysis_fst.txt
 		else
-			paste $OUTDIR/temp/${PREFIX}_head.fst <(awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_prep.fst) | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/${PREFIX}_analysis_fst.txt
+			cp <(awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_prep.fst) $OUTDIR/temp/${PREFIX}_keep2.fst
 		fi
+			
+			#Create final Sfst file for this analysis.
+			paste $OUTDIR/temp/${PREFIX}_head.fst $OUTDIR/temp/${PREFIX}_keep2.fst | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/temp/${PREFIX}_SfstNA.fst
 	fi
+
+				awk '!/na/' $OUTDIR/temp/${PREFIX}_SfstNA.fst > $OUTDIR/${PREFIX}.fst
+				declare -i before=$(wc -l $OUTDIR/${PREFIX}_raw.fst |  cut -f1 -d' ')
+				declare -i after=$(wc -l $OUTDIR/${PREFIX}.fst | cut -f1 -d' ')
+				declare -i loss=$(($before-$after))
+				echo "ALERT: $loss SNPs were removed from fst analysis due to Ns, indels, or uninformative comparisons"
+				echo "ALERT: $after fst SNPs  remain"
+				rm $OUTDIR/temp/${PREFIX}**.fst*
+				rm $OUTDIR/*fst.params
 fi
 
 if [[ "$SLIDINGFST" =~(on)$ ]]; then
-#Cleanup FST sliding window output format, average rows, and produce intuitive format
-	awk '!/=na/' $OUTDIR/${PREFIX}_raw.Sfst > $OUTDIR/temp/${PREFIX}_rawnona.Sfst
-		declare -i before=$(wc -l $OUTDIR/${PREFIX}_raw.Sfst |  cut -f1 -d' ')
-		declare -i after=$(wc -l $OUTDIR/temp/${PREFIX}_rawnona.Sfst |  cut -f1 -d' ')
-		declare -i loss=$(($before-$after))
-		echo "Alert: $loss SNPs were removed from SFST analysis due to Ns or indels in their genotype"
-	cut -d$'\t' -f 1-2 $OUTDIR/temp/${PREFIX}_rawnona.Sfst | awk '$3=(FNR FS $3)' > $OUTDIR/temp/${PREFIX}_head.Sfst
-	cut -d$'\t' -f 6- $OUTDIR/temp/${PREFIX}_rawnona.Sfst > $OUTDIR/temp/${PREFIX}_body.Sfst
+#Cleanup FST sliding window OUTDIR format, average rows, and produce intuitive format
+	awk '$5 >= '$MINCOV' &&  $5  <= '$MAXCOV' ' $OUTDIR/${PREFIX}_raw.Sfst >  $OUTDIR/temp/${PREFIX}_reclassing.Sfst
+
+	#Cut up Sfst file
+	cut -d$'\t' -f 1-2 $OUTDIR/temp/${PREFIX}_reclassing.Sfst | gawk '$3=(FNR FS $3)' > $OUTDIR/temp/${PREFIX}_head.Sfst
+	cut -d$'\t' -f 6- $OUTDIR/temp/${PREFIX}_reclassing.Sfst > $OUTDIR/temp/${PREFIX}_body.Sfst
 	awk 'NR==1{print $0}' $OUTDIR/temp/${PREFIX}_body.Sfst | awk  '{gsub("=","\t",$0); print;}' |  awk '{ for (i=2;i<=NF;i+=2) $i="" } 1' | awk  '{gsub("  ","\t",$0); print;}' | awk  '{gsub(" ","",$0); print;}'   > $OUTDIR/temp/${PREFIX}_body_heading.Sfst
 	awk '{gsub("=","\t",$0); print;}' $OUTDIR/temp/${PREFIX}_body.Sfst | awk '{ for (i=1;i<=NF;i+=2) $i="" } 1' | awk  '{gsub("  ","\t",$0); print;}' | awk  '{gsub(" ","",$0); print;}'  > $OUTDIR/temp/${PREFIX}_body2.Sfst
 	cat $OUTDIR/temp/${PREFIX}_body_heading.Sfst $OUTDIR/temp/${PREFIX}_body2.Sfst > $OUTDIR/temp/${PREFIX}_prep.Sfst
 
-	if  [[ -f ${OUTDIR}/temp/${PREFIX}_avoidcols.txt ]] ; then
-		COMBLIST2=$(awk '{print}' ORS=' ' ${OUTDIR}/temp/${PREFIX}_avoidcols.txt) 
+	if  [[ -f ${OUTDIR}/${PREFIX}_avoidcols.txt ]] ; then
+		COMBLIST2=$(awk '{print}' ORS=' ' ${OUTDIR}/${PREFIX}_avoidcols.txt) 
 		COMBLIST3=$(echo $COMBLIST2 | sed 's/[^ ][^ ]*/"&"/g')
 			ZERO=$(echo $COMBLIST3 | sed -r 's/([^ ]+)/$i!=\1/g') 
 			TWO=$(echo $ZERO | sed -e 's/ /\  \&\&\ /g')
 			ONE=$(echo " NR==1{for(i=1; i<=NF; i++) if (")
 			THREE=$(echo ' ) {a[i]++;} } { for (i in a) printf "%s\t", $i; printf "\n"} ')
 			FOUR=$(echo ${ONE}${TWO}${THREE})
-			#Use above expression to remove sliding FST columns in similar populations
+			#Use above expression to remove Sfst columns in similar populations
 			awk "$FOUR" $OUTDIR/temp/${PREFIX}_prep.Sfst > $OUTDIR/temp/${PREFIX}_keep.Sfst
-			awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_keep.Sfst | awk '{ s = 0; for (i = 1; i <= NF; i++) s += $i; print $1, (NF > 1) ? s / (NF - 0) : 0; }' | awk '{print $2}' > $OUTDIR/temp/${PREFIX}_keep2.Sfst
-			#Create final sliding fst file for this analysis.
-			paste $OUTDIR/temp/${PREFIX}_head.Sfst $OUTDIR/temp/${PREFIX}_keep2.Sfst | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/${PREFIX}_analysis_Sfst.txt
-
+			NCOLZ=$(awk '{print NF}' $OUTDIR/temp/${PREFIX}_keep.Sfst | sort -nu | tail -n 1)
+			if [ "$NCOLZ" -gt 1 ]; then
+				awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_keep.Sfst | awk '{ s = 0; for (i = 1; i <= NF; i++) s += $i; print $1, (NF > 1) ? s / (NF - 0) : 0; }' | awk '{print $2}' > $OUTDIR/temp/${PREFIX}_keep2.Sfst
+			else
+				awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_keep.Sfst > $OUTDIR/temp/${PREFIX}_keep2.Sfst
+			fi
+			#Create final Sfst file for this analysis.
+			paste $OUTDIR/temp/${PREFIX}_head.Sfst $OUTDIR/temp/${PREFIX}_keep2.Sfst | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/temp/${PREFIX}_SfstNA.Sfst
 	else 
 		if [ "$NPOPS" -gt 2 ]; then
 			awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_prep.Sfst | awk '{ s = 0; for (i = 1; i <= NF; i++) s += $i; print $1, (NF > 1) ? s / (NF - 0) : 0; }' | awk '{print $2}' > $OUTDIR/temp/${PREFIX}_keep2.Sfst
-			paste $OUTDIR/temp/${PREFIX}_head.Sfst $OUTDIR/temp/${PREFIX}_keep2.Sfst | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/${PREFIX}_analysis_Sfst.txt
 		else
-			paste $OUTDIR/temp/${PREFIX}_head.Sfst <(awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_prep.Sfst) | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/${PREFIX}_analysis_Sfst.txt
+			cp <(awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_prep.Sfst) $OUTDIR/temp/${PREFIX}_keep2.Sfst
 		fi
-
+			
+			#Create final Sfst file for this analysis.
+			paste $OUTDIR/temp/${PREFIX}_head.Sfst $OUTDIR/temp/${PREFIX}_keep2.Sfst | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/temp/${PREFIX}_SfstNA.Sfst
 	fi
+
+				awk '!/na/' $OUTDIR/temp/${PREFIX}_SfstNA.Sfst > $OUTDIR/${PREFIX}.Sfst
+				declare -i before=$(wc -l $OUTDIR/${PREFIX}_raw.Sfst |  cut -f1 -d' ')
+				declare -i after=$(wc -l $OUTDIR/${PREFIX}.Sfst | cut -f1 -d' ')
+				declare -i loss=$(($before-$after))
+				echo "ALERT: $loss SNPs were removed from Sfst analysis due to Ns, indels, or uninformative comparisons"
+				echo "ALERT: $after Sfst SNP positions remain"
+				rm $OUTDIR/temp/${PREFIX}**.Sfst*
 fi
 
 
 if [[ "$FET" =~(on)$ ]]; then
-#Cleanup FST sliding window output format, average rows, and produce intuitive format
-		awk '!/=na/' $OUTDIR/${PREFIX}_raw.fet > $OUTDIR/temp/${PREFIX}_rawnona.fet
-		declare -i before=$(wc -l $OUTDIR/${PREFIX}_raw.fet |  cut -f1 -d' ')
-		declare -i after=$(wc -l $OUTDIR/temp/${PREFIX}_rawnona.fet |  cut -f1 -d' ')
-		declare -i loss=$(($before-$after))
-		echo "Alert: $loss SNPs were removed from FET analysis due to Ns or indels in their genotype"
-	cut -d$'\t' -f 1-2 $OUTDIR/temp/${PREFIX}_rawnona.fet | awk '$3=(FNR FS $3)' > $OUTDIR/temp/${PREFIX}_head.fet
-	cut -d$'\t' -f 6- $OUTDIR/temp/${PREFIX}_rawnona.fet > $OUTDIR/temp/${PREFIX}_body.fet
+	awk '$5 >= '$MINCOV' &&  $5  <= '$MAXCOV' ' $OUTDIR/${PREFIX}_raw.fet >  $OUTDIR/temp/${PREFIX}_reclassing.fet
+
+	#Cut up fet file
+	cut -d$'\t' -f 1-2 $OUTDIR/temp/${PREFIX}_reclassing.fet | gawk '$3=(FNR FS $3)' > $OUTDIR/temp/${PREFIX}_head.fet
+	cut -d$'\t' -f 6- $OUTDIR/temp/${PREFIX}_reclassing.fet > $OUTDIR/temp/${PREFIX}_body.fet
 	awk 'NR==1{print $0}' $OUTDIR/temp/${PREFIX}_body.fet | awk  '{gsub("=","\t",$0); print;}' |  awk '{ for (i=2;i<=NF;i+=2) $i="" } 1' | awk  '{gsub("  ","\t",$0); print;}' | awk  '{gsub(" ","",$0); print;}'   > $OUTDIR/temp/${PREFIX}_body_heading.fet
 	awk '{gsub("=","\t",$0); print;}' $OUTDIR/temp/${PREFIX}_body.fet | awk '{ for (i=1;i<=NF;i+=2) $i="" } 1' | awk  '{gsub("  ","\t",$0); print;}' | awk  '{gsub(" ","",$0); print;}'  > $OUTDIR/temp/${PREFIX}_body2.fet
 	cat $OUTDIR/temp/${PREFIX}_body_heading.fet $OUTDIR/temp/${PREFIX}_body2.fet > $OUTDIR/temp/${PREFIX}_prep.fet
 
-	if  [[ -f ${OUTDIR}/temp/${PREFIX}_avoidcols.txt ]] ; then
-		COMBLIST2=$(awk '{print}' ORS=' ' ${OUTDIR}/temp/${PREFIX}_avoidcols.txt) 
+	if  [[ -f ${OUTDIR}/${PREFIX}_avoidcols.txt ]] ; then
+		COMBLIST2=$(awk '{print}' ORS=' ' ${OUTDIR}/${PREFIX}_avoidcols.txt) 
 		COMBLIST3=$(echo $COMBLIST2 | sed 's/[^ ][^ ]*/"&"/g')
 			ZERO=$(echo $COMBLIST3 | sed -r 's/([^ ]+)/$i!=\1/g') 
 			TWO=$(echo $ZERO | sed -e 's/ /\  \&\&\ /g')
 			ONE=$(echo " NR==1{for(i=1; i<=NF; i++) if (")
 			THREE=$(echo ' ) {a[i]++;} } { for (i in a) printf "%s\t", $i; printf "\n"} ')
 			FOUR=$(echo ${ONE}${TWO}${THREE})
-			#Use above expression to remove sliding FST columns in similar populations
+			#Use above expression to remove fet columns in similar populations
 			awk "$FOUR" $OUTDIR/temp/${PREFIX}_prep.fet > $OUTDIR/temp/${PREFIX}_keep.fet
-	else 
-			awk '{print $0}' $OUTDIR/temp/${PREFIX}_prep.fet > $OUTDIR/temp/${PREFIX}_keep.fet
-	fi
-		#Call Rscript
-
-			rin=$OUTDIR/temp/${PREFIX}_keep.fet
+			awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_keep.fet > $OUTDIR/temp/${PREFIX}_keep2.fet
+			#Create final fet file for this analysis.
+			
+			rin=$OUTDIR/temp/${PREFIX}_keep2.fet
 			rout=$OUTDIR/temp/
 			Rscript $BASEDIR/rscripts/r_combine_p.R $rin $rout
-			paste $OUTDIR/temp/${PREFIX}_head.fet $OUTDIR/temp/${PREFIX}_keep2.fet | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/${PREFIX}_analysis_fet.txt
+			
 
-			rm $OUTDIR/temp/*.fet
+	else 
+			awk '{if (NR!=1) {print}}' $OUTDIR/temp/${PREFIX}_prep.fet > $OUTDIR/temp/${PREFIX}_keep2.fet
+			#Create final fet file for this analysis.
+			
+			rin=$OUTDIR/temp/${PREFIX}_keep2.fet
+			rout=$OUTDIR/temp/
+			Rscript $BASEDIR/rscripts/r_combine_p.R $rin $rout
+			
+
+	fi
 	
+				paste $OUTDIR/temp/${PREFIX}_head.fet $OUTDIR/temp/${PREFIX}_keep22.fet | awk '{gsub("\t","",$0); print;}'  > $OUTDIR/temp/${PREFIX}_fetNA.fet
+				awk '!/na/' $OUTDIR/temp/${PREFIX}_fetNA.fet > $OUTDIR/${PREFIX}.fet
+				declare -i before=$(wc -l $OUTDIR/${PREFIX}_raw.fet |  cut -f1 -d' ')
+				declare -i after=$(wc -l $OUTDIR/${PREFIX}.fet | cut -f1 -d' ')
+				declare -i loss=$(($before-$after))
+				echo "ALERT: $loss SNPs were removed from FET analysis due to Ns, indels, or uninformative comparisons"
+				echo "ALERT: $after FET SNPs remain"
+				rm $OUTDIR/temp/${PREFIX}**.fet*
+				rm $OUTDIR/*fet.params
+
 fi
 
-if [[ "$NJTREE" =~(on)$ ]]; then 
+#########################
+
+if [[ "$NJTREE" =~(on)$ ]] ; then 
 	echo "ALERT: Running R for structure analyses $(date)"
-		awk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{print $0, a[$1,$2]}' <(awk '{print $1,$2}' $OUTDIR/${PREFIX}.sync)  <( awk '{print $0}' $OUTDIR/temp/${PREFIX}_$TSO3)  >  $OUTDIR/${PREFIX}.fz
+		gawk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{print $0, a[$1,$2]}' <(awk '{print $1,$2}' $OUTDIR/${PREFIX}.sync)  <( awk '{print $0}' $OUTDIR/temp/${PREFIX}_$TSO3)  >  $OUTDIR/${PREFIX}.fz
 			#Call Rscript
 			rin=$OUTDIR/${PREFIX}.fz
 			rout=$OUTDIR/
 			cfile=${OUTDIR}/temp/${PREFIX}_popnames.txt
-				Rscript $BASEDIR/rscripts/r_structure.R $rin $rout $AFFILT $STRWINDOW $METHOD $BSTRAP $cfile
+			
+			Rscript $BASEDIR/rscripts/r_structure.R $rin $rout $AFFILT $STRWINDOW $METHOD $BSTRAP $cfile
 
 fi
 
-	rm $OUTDIR/*.params
-	rm -rf $OUTDIR/temp/
+if [[ -f $OUTDIR/temp/${PREFIX}*.params ]] ; then
+	rm $OUTDIR/temp/${PREFIX}*.params
+fi
+	rm $OUTDIR/temp/${PREFIX}_${TSO3}*
+	rm $OUTDIR/temp/*.txt
+
 echo "ALERT: PPanalyze done at $(date)"

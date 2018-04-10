@@ -8,6 +8,8 @@ if [[ ${BASEDIR} != *poolparty* ]];then
 	BASEDIR=${SLOC%/*}
 fi
 
+set -o pipefail
+
 if  ( [[ $(echo $1)  = "" ]] )  ; then
 	echo "ERROR: You must provide a config file after the PPstats command"
 	echo "for example, ./PPstats poolparty_stats.config"
@@ -23,13 +25,18 @@ fi
 		mkdir $OUTDIR/
 	fi
 
+	if [[ -f ${OUTDIR}/${OUTFILE} ]] ; then
+		echo "ERROR: ${OUTDIR}/${OUTFILE} already exists, cannot overwrite "
+		exit
+	fi
+
 echo "V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14" > ${OUTDIR}/${OUTFILE}
 
 
 #Check for presence of MPILEUP
 
 	if [[ ! -f ${MPILEUP} ]] ; then
-   	 	echo "mpileup file doesn't exist! Aborting."
+   	 	echo "ERROR: mpileup file doesn't exist! Aborting."
     		exit
 	fi
 
@@ -43,24 +50,30 @@ echo "V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14" > ${OUTDIR}/${OUTFILE}
 		fi
 
 if [[ ! -f ${FAI} ]] ; then
-    echo ".fai file doesn't exist! Aborting."
+    echo "ERROR: Genome .fai file doesn't exist! Aborting."
     exit
 fi
 
 if ! grep -q "$SCAFP" $FAI;
  then
-    echo "Scaffold prefix is wrong. Check fai file for scaffold prefix. Aborting"
+    echo "ERROR: Scaffold prefix is wrong. Check fai file for scaffold prefix. Aborting"
  	exit
 fi
 
 if [[ $MINCOV =~ ^[\-0-9]+$ ]] && (( $MINCOV < 1)); then
-    echo "Minimum coverage must be a positive integer. Aborting."
+    echo "ERROR: Minimum coverage must be a positive integer. Aborting."
  	exit
 fi
 
 if [[ $MAXCOV =~ ^[\-0-9]+$ ]] && (( $MINCOV < 1)); then
-    echo "Minimum coverage must be a positive integer. Aborting"
+    echo "ERROR: Minimum coverage must be a positive integer. Aborting"
  	exit
+fi
+
+#Check for piping ability
+if  [[ $(command -v mkfifo)  = "" ]] ; then
+	echo "WARNING: piping 'mkfifo' not detected on system or available on drive. This may cause issues in downstream analyses"
+	echo "Edit PPstats.sh and redirect mkfifo to another drive"
 fi
 
 #Check for R
@@ -70,20 +83,19 @@ fi
 			exit
 		fi
 
-	#Load R to check for dependencies 
-	###LOCATIONS WILL NEED TO BE CHANGED ###
-		if  [[ -f $OUTDIR/R_ERROR.txt ]] ; then
-			rm $OUTDIR/R_ERROR.txt 
-		fi		
+#Load R to check for dependencies 
+	if  [[ -f $OUTDIR/R_ERROR.txt ]] ; then
+		rm $OUTDIR/R_ERROR.txt 
+	fi		
 
-		Rscript $BASEDIR/rscripts/r_stats_check.R $OUTDIR
+	Rscript $BASEDIR/rscripts/r_stats_check.R $OUTDIR
 
-		if  [[ -f $OUTDIR/R_ERROR.txt ]] ; then
-			echo "ERROR: R dependency check failed, install dependencies manually"
-			exit
-		fi
+	if  [[ -f $OUTDIR/R_ERROR.txt ]] ; then
+		echo "ERROR: R dependency check failed, install dependencies manually"
+		exit
+	fi
 
-	echo "CONF: Parameter check passed. moving on..."
+echo "CONF: Parameter check passed. moving on..."
 
 #Check complete
 
@@ -144,7 +156,7 @@ foo() {
 			echo "COMB_TOT_BP $NLINE bp covered sufficiently by all libraries" >> ${OUTDIR}/${OUTFILE}
 			PROP=$(echo "$NLINE $FL" | awk '{printf "%.5f \n", $1/$2}')
 			echo "COMB_TOT_PROP $PROP of genome covered sufficiently by all libraries" >> ${OUTDIR}/${OUTFILE}
-			echo "CONF 1/8 Complete" 
+			echo "CONF 1/8 Complete, summary acquired and proportion of genomic overlap detected" 
 }
 
 	foo &
@@ -177,7 +189,7 @@ foo() {
     	)&
 	}
 
-	#Filtering bams; removing junk. Parallel.  
+#Filtering bams; removing junk. Parallel.  
 task() {
 
 			ITER="$((${arr2[$i]} - 3))"
@@ -195,11 +207,8 @@ task() {
 			for ((i=0;i<${#arr2[@]};++i)); do
 				run_with_lock task $i
 		done ; wait
-	
-	
 
-
-echo "CONF 2/8 Complete"
+echo "CONF 2/8 Complete, total mean coverage calculated"
 
 ############################
 #MEAN COVERED AFTER FILTERS
@@ -225,7 +234,7 @@ echo "CONF 2/8 Complete"
 				run_with_lock task2 $i
 		done ; wait
 
-echo "CONF 3/8 Complete"
+echo "CONF 3/8 Complete, filtered mean coverage calculated"
 
 ##############
 #PROP COVERED
@@ -249,7 +258,7 @@ echo "CONF 3/8 Complete"
 				run_with_lock task3 $i
 		done ; wait
 
-echo "CONF 4/8 Complete"
+echo "CONF 4/8 Complete, proportion of ref genome calculated"
 
 ##############################
 #Proportion Scaffold  Covered
@@ -276,8 +285,7 @@ CHRNUM=$(grep "^${SCAFP}" ${FAI}| cut -f 1  | uniq)
 				run_with_lock task4 $j
 		done ; wait
 
-echo "CONF 5/8 Complete"
-
+echo "CONF 5/8 Complete, scaffold proportion calculated"
 
 ##############################
 #Proportion Anchored Covered
@@ -303,8 +311,7 @@ echo "CONF 5/8 Complete"
 				run_with_lock task5 $j
 		done ; wait
 
-echo "CONF 6/8 Complete"
-
+echo "CONF 6/8 Complete, anchored proportion calculated"
 
 ###############################################
 #Coverage at threshold intervals- outer loop #
@@ -336,7 +343,7 @@ echo "CONF 6/8 Complete"
 
 done ; wait
 
-echo "CONF 7/8 Complete"	
+echo "CONF 7/8 Complete, interval proportion calculated"	
 
 #####################################
 #Chromosome-by-chromosome analysis#
@@ -367,17 +374,13 @@ task7() {
 		done 
 	done ; wait
 
-echo "CONF 8/8 Complete"
+echo "CONF 8/8 Complete, chromosome proportion calculated"
 
 fi 
-	
-echo "CONF Full run is complete"
-
-echo "CONF Loading R to Plot Results and create tables"
-
+echo "CONF BASH portion of run is complete"
+echo "CONF Loading R to plot results and create tables"
 	rin=${OUTDIR}/${OUTFILE}
 	rout=${OUTDIR}
 		Rscript ${BASEDIR}/rscripts/r_plotstats.R $rin $rout
 
 echo "CONF all files have been written to ${OUTDIR}"
-
