@@ -293,13 +293,13 @@ fi
 	if [[ "$FST" =~(on)$ ]] && [[ "$FSTTYPE" =~(traditional)$ ]]; then 
 		echo "ALERT: FST is running"
 		perl /${POOL2}/fst-sliding.pl --input $OUTDIR/${PREFIX}.sync --output  $OUTDIR/${PREFIX}_raw.fst  --min-count 1 \
-			--min-coverage 1 --max-coverage $MAXCOV --min-covered-fraction 1 --window-size 1 --step-size 1 --pool-size $NIND &
+			--min-coverage 2 --max-coverage $MAXCOV --min-covered-fraction 1 --window-size 1 --step-size 1 --pool-size $NIND &
 	fi
 
 	if [[ "$FST" =~(on)$ ]] && [[ "$FSTTYPE" =~(karlsson)$ ]]; then 
 		echo "ALERT: FST is running"
 		perl /${POOL2}/fst-sliding.pl --input $OUTDIR/${PREFIX}.sync --output  $OUTDIR/${PREFIX}_raw.fst  --min-count 1 \
-			--min-coverage 1 --max-coverage $MAXCOV --min-covered-fraction 1 --window-size 1 --step-size 1 --pool-size $NIND --karlsson-fst &
+			--min-coverage 2 --max-coverage $MAXCOV --min-covered-fraction 1 --window-size 1 --step-size 1 --pool-size $NIND --karlsson-fst &
 	fi
 	
 
@@ -307,19 +307,19 @@ fi
 	if [[ "$SLIDINGFST" =~(on)$ ]] && [[ "$FSTTYPE" =~(traditional)$ ]] ; then 
 		echo "ALERT: Sliding FST is running"
 		perl /${POOL2}/fst-sliding.pl --input $OUTDIR/${PREFIX}.sync --output $OUTDIR/${PREFIX}_raw.Sfst  --min-count 1 \
-			--min-coverage 1 --max-coverage $MAXCOV --min-covered-fraction 0 --window-size $WINDOW --step-size $STEP --pool-size $NIND  &
+			--min-coverage 2 --max-coverage $MAXCOV --min-covered-fraction 0 --window-size $WINDOW --step-size $STEP --pool-size $NIND  &
 	fi
 	
 	if [[ "$SLIDINGFST" =~(on)$ ]] && [[ "$FSTTYPE" =~(karlsson)$ ]] ; then 
 		echo "ALERT: Sliding FST is running"
 		perl /${POOL2}/fst-sliding.pl --input $OUTDIR/${PREFIX}.sync --output $OUTDIR/${PREFIX}_raw.Sfst  --min-count 1 \
-			--min-coverage 1 --max-coverage $MAXCOV --min-covered-fraction 0 --window-size $WINDOW --step-size $STEP --karlsson-fst --pool-size $NIND  &
+			--min-coverage 2 --max-coverage $MAXCOV --min-covered-fraction 0 --window-size $WINDOW --step-size $STEP --karlsson-fst --pool-size $NIND  &
 	fi
 
 	if [[ "$FET" =~(on)$ ]] ; then 
 		echo "ALERT: FET is running"
 		perl /${POOL2}/fisher-test.pl --input $OUTDIR/${PREFIX}.sync --output $OUTDIR/${PREFIX}_raw.fet  \
-			--min-count 1 --min-coverage 1 --max-coverage $MAXCOV 
+			--min-count 1 --min-coverage 2 --max-coverage $MAXCOV 
 	fi
 	wait
 		echo "ALERT: All pairwise analyses complete at $(date)"
