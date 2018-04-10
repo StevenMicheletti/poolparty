@@ -329,11 +329,13 @@ Multiple utility scripts come with PoolParty for plotting and additional analyse
 ## PPmanhat
  - Plots results such as FST, SFST, FET, density in a 4-column format (CHR,BP,SNPID,FST)
 ## PPrunls
- - Runs local score (Fariello et al.) on p-values from SNPs
+ - Runs local score (Fariello et al. 2017) on p-values from SNPs
 ## PPruncmh
  - Runs a Cochran–Mantel–Haenszel (CMH) on .sync file
 ## PPsubset
  - Subsets FST,SFST, or FET file by specific libraries are additional coverage thresholds 
+## PPrunflk
+ - Runs FLK (Bonhomme et al. 2010) on .fz table 
 
 # Troubleshooting
 
