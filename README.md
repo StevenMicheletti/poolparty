@@ -1,6 +1,6 @@
 # :fish: PoolParty  :umbrella:
 
-### A Pool-Seq Bioinformatic Pipeline (ver b0.2)
+### A Pool-Seq Bioinformatic Pipeline (ver 0.76)
 
 A BASH pipeline to align and analyze paired-end NGS data.
 
@@ -8,7 +8,7 @@ A BASH pipeline to align and analyze paired-end NGS data.
 
 Ensure that proper permissions are set to execute each package in the pipeline . 
 
- PoolParty is designed to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, number of pools, etc.  
+ PoolParty is designed to be run on analysis servers. As such, memory and storage may be limiting factor for some systems depending on genome sizes, number of pools, number of SNPs, etc. In general, 128 gb of ram with at least 10 threads should suffice. 
 
  It is highly recommended to run the example files provided in the example directory before diving into large datasets.  
 
@@ -320,7 +320,21 @@ PPStats simply takes a mpileup with each population's depth of coverage for each
   
 - ##### OUTDIR/_chr_prop_mean.pdf
   - Mean proportion of each chromosome covered by mapped reads after filtering out reads by min and max depth of coverage. Similar plots will produced for each library/population
-  
+ 
+
+# PPanalyze
+
+Multiple utility scripts come with PoolParty for plotting and additional analyses. Each of these can be run from the terminal without the need for a configuration file. Typing -h after calling the script will bring up help options for each.
+
+## PPmanhat
+ - Plots results such as FST, SFST, FET, density in a 4-column format (CHR,BP,SNPID,FST)
+## PPrunls
+ - Runs local score (Fariello et al.) on p-values from SNPs
+## PPruncmh
+ - Runs a Cochran–Mantel–Haenszel (CMH) on .sync file
+## PPsubset
+ - Subsets FST,SFST, or FET file by specific libraries are additional coverage thresholds 
+
 # Troubleshooting
 
 PoolParty is new so users may encounter bugs. However, there are common issues that can be avoided  :
@@ -328,6 +342,7 @@ PoolParty is new so users may encounter bugs. However, there are common issues t
 1) Permissions: Proper permissions are not only needed to run the PoolParty modules, but also all dependencies. Ensure that your user account has permissions to execute programs and write to the specified output directories.
 2) Memory: With increased data comes increased memory usage. If java programs encounter a memory error they will usually spit out an interpretable error. Tune the java memory parameter accordingly.
 3) Storage: Large temporary files can fill up smaller hard drives fast. Storage issues generally will have to be resolved with hardware. 
+4) Compatibility: PoolParty is POSIX compliant but incompatibilities with specific Linux distributions can still be encountered. Specific formatting of output drives can cause issues, especially if piping is not supported on these drives (mkfifo). Errors associating with drives may require reformatting or diverting output files to a different drive. 
 
 If an issue does not fall within this category, post the error message and explanation to the PoolParty GitHub page. Also, don't forget to check out the example file for more details. 
 
@@ -341,7 +356,7 @@ Enter the module that is running and determine processes it is associated with:
 
 Kill all script processes:  
 
-> $ killall PPalign inotifywait
+> $ killall PPalign
 
 You may need to kill any additional lingering processes
 
