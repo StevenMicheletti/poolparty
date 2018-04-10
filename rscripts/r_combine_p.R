@@ -16,7 +16,10 @@ outdir <- args[7]
 
 snps <- fread(name, stringsAsFactors=FALSE, header=F, showProgress=FALSE)
 snps <- as.data.frame(snps)
-snps <- as.data.frame(snps[,colSums(is.na(snps)) == 0])
+snps [is.na(snps)] <- 0
+snps[snps=="na"]<-0
+snps <- apply(snps,2, function(x) as.numeric(as.character(x))) 
+
 
 #Get p-val for each column
 if (ncol(snps) > 1) {
@@ -36,5 +39,3 @@ snps4  <-round(snps4, 6)
 print("R ALERT: FET p-values combined using Fisher's Method")
 outname1 <- paste0(outdir,"/", alertname2, "2.fet")
 write.table(snps4, file=outname1, row.names=FALSE, col.names=FALSE)
-
-
