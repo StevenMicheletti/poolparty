@@ -199,7 +199,6 @@ forPCA <- infile
 
 pca1 = prcomp(forPCA, scale = TRUE)
 
-
 #Calculate variance explained
 pca.eig= pca1$sdev^2
 ax1 <-round((pca.eig[1] / sum(pca.eig)*100), digits=1)
@@ -227,43 +226,51 @@ ctable$to= coloRZ[2:(nrow(ctable)+1)]
 
 #Apply colors to PC values by bins
 plotting2=plotting
-plotting2$to = range01(plotting2$PC1)
-plotting2$from = range01(plotting2$PC1)
+plotting2$to =range01(plotting2$PC1)
+plotting2$from =range01(plotting2$PC1)
 setDT(ctable)
 setDT(plotting2)
-setkey(ctable, from, to)
-ans = foverlaps(plotting2, ctable, type="any")
-clist<-as.vector(ans[[1]])
-plotting$clr=paste0(clist,50)
-plotting = as.data.frame(plotting)
-##now Y
-plotting2=plotting
-plotting2$to = range01(plotting2$PC2)
-plotting2$from = range01(plotting2$PC2)
-setDT(ctable)
-setDT(plotting2)
-setkey(ctable, from, to)
-ans = foverlaps(plotting2, ctable, type="any")
-clist<-as.vector(ans[[1]])
-plotting$clr2=paste0(clist,50)
-plotting = as.data.frame(plotting)
-#Expand graph limits by 5%
-expandY = (max(plotting$PC2) - min(plotting$PC2)) * 0.05
-expandX = (max(plotting$PC1) - min(plotting$PC1)) * 0.05
-#Plot 
 
+if (max(plotting2$PC1) - min(plotting2$PC1) > 0) {
 
-outname4 <- paste0(outdir,"/", alertname2, "_PCA.pdf")
-pdf(outname4 , width = 10, height = 8)
-plot(plotting$PC1, plotting$PC2, pch = 20, cex =3, xlab= ax1, ylab =ax2, 
-     xlim =c(min(plotting$PC1) - expandX, max(plotting$PC1) + expandX ),
-     ylim =c(min(plotting$PC2) - expandY, max(plotting$PC2) + expandY ),
-     col=plotting$clr)
-  points(plotting$PC1, plotting$PC2, pch = 20, cex =3,col=plotting$clr2)
-  points(plotting$PC1, plotting$PC2, pch = 20, cex =3,col=plotting$clr2)
-  text(plottingL$PC1,plottingL$PC2, cnames)
-invisible(dev.off())
+	head(plotting2)
+	head(ctable)
 
+	setkey(ctable, from, to)
+
+	ans = foverlaps(plotting2, ctable, type="any")
+
+	clist<-as.vector(ans[[1]])
+	plotting$clr=paste0(clist,50)
+	plotting = as.data.frame(plotting)
+	##now Y
+	plotting2=plotting
+	plotting2$to = range01(plotting2$PC2)
+	plotting2$from = range01(plotting2$PC2)
+	setDT(ctable)
+	setDT(plotting2)
+	setkey(ctable, from, to)
+	ans = foverlaps(plotting2, ctable, type="any")
+	clist<-as.vector(ans[[1]])
+	plotting$clr2=paste0(clist,50)
+	plotting = as.data.frame(plotting)
+	#Expand graph limits by 5%
+	expandY = (max(plotting$PC2) - min(plotting$PC2)) * 0.05
+	expandX = (max(plotting$PC1) - min(plotting$PC1)) * 0.05
+	#Plot 
+	outname4 <- paste0(outdir,"/", alertname2, "_PCA.pdf")
+	pdf(outname4 , width = 10, height = 8)
+	plot(plotting$PC1, plotting$PC2, pch = 20, cex =3, xlab= ax1, ylab =ax2, 
+  	   xlim =c(min(plotting$PC1) - expandX, max(plotting$PC1) + expandX ),
+    	 ylim =c(min(plotting$PC2) - expandY, max(plotting$PC2) + expandY ),
+   	  col=plotting$clr)
+  	points(plotting$PC1, plotting$PC2, pch = 20, cex =3,col=plotting$clr2)
+  	points(plotting$PC1, plotting$PC2, pch = 20, cex =3,col=plotting$clr2)
+  	text(plottingL$PC1,plottingL$PC2, cnames)
+	invisible(dev.off())
+} else {
+	print("R ALERT: No variation, skipping PCA..")
+	}
 
 print("R ALERT: Doing the phylogenetics...")
 
