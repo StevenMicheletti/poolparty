@@ -17,6 +17,11 @@ if  ( [[ $(echo $1)  = "" ]] )  ; then
 	exit
 fi
 
+
+#Declare integers for numerical parameters
+declare -i MINCOV
+declare -i MAXCOV
+
 #Get date of run and save an additional config file with run parameters
 RUNDATE=$(date +'%m_%d_%Y')
 
@@ -59,10 +64,12 @@ echo "ALERT: Performing error checking"
 	#Ensure required parameters are within a valid range
 		if  [[ ! "$MINCOV" =~ ^[0-9]+$ ]] || [[ ! "$MAXCOV" =~ ^[0-9]+$ ]];  then
         	echo "ERROR: MINCOV and MAXCOV must be positive integers. Check parameters"
+			echo "MINCOV currently read as $MINCOV, and MAXCOV currently read as $MAXCOV"
 			exit
 		fi
 		if  [[ ! "$MAF" =~ ^[+-]?[0-9]+\.?[0-9]*$  ]] ; then 
 			echo "ERROR: MAF must be a value between 0 and 1"
+			echo "MAF currently read as $MAF"
 			exit
 		fi
 	#Check for analyses turned on or off
@@ -84,46 +91,64 @@ echo "ALERT: Performing error checking"
 		fi
 	#Check for analysis-specific paramters
 		if [[ "$FST" == "on" ]] ; then
+			declare -i NIND
 			if [[ "$FSTTYPE" != "traditional" ]] && [[ "$FSTTYPE" != "karlsson" ]] ; then
 				echo "ERROR: Wrong Parameters: FST type must be either traditional or karlsson"
+				echo "FSTTYPE currently read as $FSTTYPE"
 				exit
 			fi
 			if  [[ ! "$NIND" =~ ^[0-9]+$ ]] ; then
 				echo "ERROR: Wrong Parameters: NIND must be a positive integer"
+				echo "NIND currently read as $NIND"
 				exit
 			fi
 		fi
 		if [[ "$SLIDINGFST" == "on" ]]  ; then
+			declare -i WINDOW
+			declare -i STEP
+			declare -i NIND
 			if [[ "$FSTTYPE" != "traditional" ]] && [[ "$FSTTYPE" != "karlsson" ]] ; then
 				echo "ERROR: Wrong Parameters: FST type must be either traditional or karlsson"
+				echo "FSTTYPE currently read as $FSTTYPE"
 				exit
 			fi
 			if  [[ ! "$NIND" =~ ^[0-9]+$ ]]  ; then
 				echo "ERROR: Wrong Parameters: NIND must be a positive integer"
+				echo "NIND currently read as $NIND"
 				exit
 			fi
-			if  [[ ! "$WINDOW" =~ ^[0-9]+$ ]] || [[ ! "$STEP" =~ ^[0-9]+$ ]] || [[ ! "$STRWINDOW" =~ ^[0-9]+$ ]] ; then
-				echo "ERROR: Wrong Parameters: WINDOWS AND STEP must be positive integers"
-				exit
+			if [[ "$SLIDINGFST" == "on" ]]  ; then
+				if [[ ! "$WINDOW" =~ ^[0-9]+$ ]] || [[ ! "$STEP" =~ ^[0-9]+$ ]] ; then
+					echo "ERROR: Wrong Parameters: WINDOW AND STEP must be positive integers"
+					echo "WINDOW currently read as $WINDOW, STEP currently read as $STEP"
+					exit
+				fi
 			fi
 		fi
 		if [[ "$NJTREE" == "on" ]]  ; then
+			declare -i STRWINDOW
+			declare -i BSTRAP
+			declare -i AFFILT
 			if [[ "$METHOD" != "mean" ]] &&  [[ "$METHOD" != "random" ]] \
 				&& [[ "$METHOD" != "rangemax" ]] && [[ "$METHOD" != "rangemin" ]] \
 				&& [[ "$METHOD" != "first" ]] && [[ "$METHOD" != "last" ]]	; then
 				echo "ERROR: Wrong Parameters: NJ Combine method type must be mean, random, rangemax, rangemin, first, or last"
+				echo "METHODS currently read as $METHOD"
 				exit
 			fi
 			if  [[ ! "$AFFILT" =~ ^[+-]?[0-9]+\.?[0-9]*$  ]]  ; then
 				echo "ERROR: Wrong Parameters: AFFILT must be between 0 and 1"
+				echo "AFFILT currently read as $AFFILT "
 				exit
 			fi
-			if  [[ ! "$WINDOW" =~ ^[0-9]+$ ]]  ; then
-				echo "ERROR: Wrong Parameters: WINDOW must be a positive integer"
+			if  [[ ! "$STRWINDOW" =~ ^[0-9]+$ ]]  ; then
+				echo "ERROR: Wrong Parameters: STRWINDOW must be a positive integer"
+				echo "STRWINDOW currently read as $STRWINDOW"
 				exit
 			fi
 			if  [[ ! "$BSTRAP" =~ ^[0-9]+$ ]]  ; then
 				echo "ERROR: Wrong Parameters: BSTRAP must be a positive integer"
+				echo "BSTRAP currently read as $BSTRAP"
 				exit
 			fi
 		fi
@@ -151,7 +176,8 @@ echo "ALERT: Performing error checking"
 		fi
 
 #Copy configuration file so you know what you did later
-	cp $1 ${OUTDIR}/${PREFIX}_${RUNDATE}.config
+
+	cp $1 ${OUTDIR}/${PREFIX}_${RUNDATE}.config | awk '{ sub("\r$", ""); print $0 }'
 	
 #Get number of populations specified by POPS 
 POPS2=$(echo $POPS | sed 's/[,:]/ /g')
@@ -239,7 +265,7 @@ else
 	TSO2=$(date +%s | sha256sum | base64 | head -c 9 ; echo)
 	declare -a covarray=()
 		for i in "${arr2[@]}" ; do
-			covarray+=( "$(( 2 + $i ))" )
+			covarray+=( "$(( 2 + $i ))" )  
 		done
 			bar2=$(printf "\n%s\n" "${covarray[@]}")
 				ONE=$(echo $bar2| sed -r 's/([^ ]+)/$\1/g')
@@ -248,7 +274,23 @@ else
 				FOUR=$(echo $TWO$THREE)
 			tail -n +2 $FZFILE | awk  "$FOUR" $COVFILE | awk '{print $1,$2}' > $OUTDIR/temp/${PREFIX}_$TSO2
 			#subset coverage sync file created
-		
+
+	# Get indel/N blacklist from coverage file for all files specified 
+	TSO2B=$(date +%s | sha256sum | base64 | head -c 17 ; echo)
+	declare -a covarray=()
+		declare -i skipz="$((${#arr2[@]} + 3))"
+		for i in "${arr2[@]}" ; do
+			covarray+=( "$(( $skipz + $i ))" )
+		done
+			bar2=$(printf "\n%s\n" "${covarray[@]}")
+				ONE=$(echo $bar2| sed -r 's/([^ ]+)/$\1/g')
+				TWO=$(echo $ONE | awk '$NF=$NF " >= 1 || "' OFS=" >= 1 || ")
+				THREE=$(echo $ONE | awk '$NF=$NF " > 0"' OFS=" > 0 || ")
+				FOUR=$(echo $TWO$THREE)
+				echo $FOUR
+			tail -n +2 $FZFILE | awk  "$FOUR" $COVFILE | awk '{print $1,$2}' > $OUTDIR/temp/${PREFIX}_$TSO2B
+			#subset coverage sync file created
+			
 	# Freq file, run through R to get final MAF for populations being compared(black list)
 	TSO3=$(date +%s | sha256sum | base64 | head -c 8 ; echo)
 	declare -a fzarray=()
@@ -268,21 +310,24 @@ else
 				rout=$OUTDIR/temp/
 				Rscript $BASEDIR/rscripts/r_anal_maf.R  $rin $rout $MAF
 
-	#First Filter by coverage whitelist
+	#First Filter by coverage whitelist and remove by blacklist
 	TSO4=$(date +%s | sha256sum | base64 | head -c 5 ; echo)
 		echo "ALERT: Filtering blacklisted markers at $(date)"
 		gawk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{print $0, a[$1,$2]}' $OUTDIR/temp/${PREFIX}_$TSO2 $OUTDIR/temp/${PREFIX}_$TSO1 > $OUTDIR/temp/${PREFIX}_$TSO4
+		awk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{next}{print $0, a[$1,$2]}'  $OUTDIR/temp/${PREFIX}_$TSO2B $OUTDIR/temp/${PREFIX}_$TSO4 > $OUTDIR/temp/${PREFIX}_${TSO4}_B
 			rm $OUTDIR/temp/${PREFIX}_$TSO2
 			rm $OUTDIR/temp/${PREFIX}_$TSO1
-
+			rm $OUTDIR/temp/${PREFIX}_$TSO2B
+			
 	#Combine blacklist info into one temp file
 	TSO5=$(date +%s | sha256sum | base64 | head -c 12 ; echo)
 				cat $OUTDIR/temp/${PREFIX}_${TSO3}_mafBL $BLACKLIST  > $OUTDIR/temp/${PREFIX}_$TSO5
 					BLEN=$(wc -l < $OUTDIR/temp/${PREFIX}_$TSO5 )
 					echo "ALERT: There are $BLEN SNPs marked for removal"
-				gawk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{next}{print $0, a[$1,$2]}' $OUTDIR/temp/${PREFIX}_$TSO5  $OUTDIR/temp/${PREFIX}_$TSO4 |  awk  '{gsub(" ","\t",$0); print;}' > $OUTDIR/${PREFIX}.sync
-					rm $OUTDIR/temp/${PREFIX}_$TSO4
-					rm $OUTDIR/temp/${PREFIX}_$TSO5
+				gawk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{next}{print $0, a[$1,$2]}' $OUTDIR/temp/${PREFIX}_$TSO5  $OUTDIR/temp/${PREFIX}_${TSO4}_B |  awk  '{gsub(" ","\t",$0); print;}' > $OUTDIR/${PREFIX}.sync
+					#rm $OUTDIR/temp/${PREFIX}_$TSO4
+					#rm $OUTDIR/temp/${PREFIX}_$TSO4B
+					#rm $OUTDIR/temp/${PREFIX}_$TSO5
 					FLEN=$(wc -l < $OUTDIR/${PREFIX}.sync )
  					echo "ALERT: There are $FLEN SNPs being analyzed after filters"
 fi
@@ -293,13 +338,13 @@ fi
 	if [[ "$FST" =~(on)$ ]] && [[ "$FSTTYPE" =~(traditional)$ ]]; then 
 		echo "ALERT: FST is running"
 		perl /${POOL2}/fst-sliding.pl --input $OUTDIR/${PREFIX}.sync --output  $OUTDIR/${PREFIX}_raw.fst  --min-count 1 \
-			--min-coverage 2 --max-coverage $MAXCOV --min-covered-fraction 1 --window-size 1 --step-size 1 --pool-size $NIND &
+			--min-coverage 2 --max-coverage ${MAXCOV} --min-covered-fraction 1 --window-size 1 --step-size 1 --pool-size ${NIND} &
 	fi
 
 	if [[ "$FST" =~(on)$ ]] && [[ "$FSTTYPE" =~(karlsson)$ ]]; then 
 		echo "ALERT: FST is running"
 		perl /${POOL2}/fst-sliding.pl --input $OUTDIR/${PREFIX}.sync --output  $OUTDIR/${PREFIX}_raw.fst  --min-count 1 \
-			--min-coverage 2 --max-coverage $MAXCOV --min-covered-fraction 1 --window-size 1 --step-size 1 --pool-size $NIND --karlsson-fst &
+			--min-coverage 2 --max-coverage ${MAXCOV} --min-covered-fraction 1 --window-size 1 --step-size 1 --pool-size ${NIND} --karlsson-fst &
 	fi
 	
 
@@ -307,19 +352,19 @@ fi
 	if [[ "$SLIDINGFST" =~(on)$ ]] && [[ "$FSTTYPE" =~(traditional)$ ]] ; then 
 		echo "ALERT: Sliding FST is running"
 		perl /${POOL2}/fst-sliding.pl --input $OUTDIR/${PREFIX}.sync --output $OUTDIR/${PREFIX}_raw.Sfst  --min-count 1 \
-			--min-coverage 2 --max-coverage $MAXCOV --min-covered-fraction 0 --window-size $WINDOW --step-size $STEP --pool-size $NIND  &
+			--min-coverage 2 --max-coverage ${MAXCOV} --min-covered-fraction 0 --window-size ${WINDOW} --step-size ${STEP} --pool-size ${NIND}  &
 	fi
 	
 	if [[ "$SLIDINGFST" =~(on)$ ]] && [[ "$FSTTYPE" =~(karlsson)$ ]] ; then 
 		echo "ALERT: Sliding FST is running"
 		perl /${POOL2}/fst-sliding.pl --input $OUTDIR/${PREFIX}.sync --output $OUTDIR/${PREFIX}_raw.Sfst  --min-count 1 \
-			--min-coverage 2 --max-coverage $MAXCOV --min-covered-fraction 0 --window-size $WINDOW --step-size $STEP --karlsson-fst --pool-size $NIND  &
+			--min-coverage 2 --max-coverage ${MAXCOV} --min-covered-fraction 0 --window-size ${WINDOW} --step-size ${STEP} --karlsson-fst --pool-size ${NIND}  &
 	fi
 
 	if [[ "$FET" =~(on)$ ]] ; then 
 		echo "ALERT: FET is running"
 		perl /${POOL2}/fisher-test.pl --input $OUTDIR/${PREFIX}.sync --output $OUTDIR/${PREFIX}_raw.fet  \
-			--min-count 1 --min-coverage 2 --max-coverage $MAXCOV 
+			--min-count 1 --min-coverage 2 --max-coverage ${MAXCOV}
 	fi
 	wait
 		echo "ALERT: All pairwise analyses complete at $(date)"
@@ -479,6 +524,7 @@ if [[ "$FET" =~(on)$ ]]; then
 
 fi
 
+
 #########################
 
 if [[ "$NJTREE" =~(on)$ ]] ; then 
@@ -488,7 +534,6 @@ if [[ "$NJTREE" =~(on)$ ]] ; then
 			rin=$OUTDIR/${PREFIX}.fz
 			rout=$OUTDIR/
 			cfile=${OUTDIR}/temp/${PREFIX}_popnames.txt
-			
 			Rscript $BASEDIR/rscripts/r_structure.R $rin $rout $AFFILT $STRWINDOW $METHOD $BSTRAP $cfile
 
 fi
@@ -496,7 +541,7 @@ fi
 if [[ -f $OUTDIR/temp/${PREFIX}*.params ]] ; then
 	rm $OUTDIR/temp/${PREFIX}*.params
 fi
-	rm $OUTDIR/temp/${PREFIX}_${TSO3}*
+	#rm $OUTDIR/temp/${PREFIX}_${TSO3}*
 	rm $OUTDIR/temp/*.txt
 
 echo "ALERT: PPanalyze done at $(date)"
