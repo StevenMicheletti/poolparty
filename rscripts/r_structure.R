@@ -47,7 +47,7 @@ print("R ALERT: R structure analysis has begun")
 
 #Filter High Allele Diffs
 	infileaf <- infile[ which(infile$R > af.filt),]
-	infile <- infile[ which(infile$R < af.filt),]
+	infile <- infile[ which(infile$R <= af.filt),]
 	alert3 <- paste0("R ALERT: ", nrow(infileaf), " SNPs removed due to Maximum allele frequency filter of: ", af.filt)
 	alert4 <- paste0("R ALERT: ", nrow(infile), " SNPs still remain")
 	print(alert3)
@@ -82,14 +82,14 @@ if (win.size > 1) {
   denZ <- infile
   denZ$count <- as.numeric(ave(denZ[[1]], denZ$Group, FUN=length))
   denZ$density <- denZ$count / win.size # get proportion of linkage group
-  denZ$avpos <-  ceiling(ave(denZ$V2, denZ$Group, FUN=mean))
+  denZ$avpos <-  ((win.size*ceiling(ave(denZ$V2, denZ$Group, FUN=max)/win.size)))
   denZ = denZ[!duplicated(denZ$Group),]
   denzS = 1:nrow(denZ)
   denZI <- as.data.frame(cbind(denZ$V1, denZ$avpos, denzS, denZ$density))
   colnames(denZI) <- c("CHR", "POS", "SNP", "DENSITY")
   denZI$DENSITY<- as.numeric(as.character(denZI$DENSITY))
-  minz <- min(denZI$DENSITY)
-  maxz <- max(denZI$DENSITY)
+  minz <- min(denZ$count)
+  maxz <- max(denZ$count)
   info <- paste0("R ALERT: Max density is ", maxz, " SNPs per ", win.size, " bp ", "and Min density is ", minz, " SNPs per ", win.size, " bp.")
   print(info)
   info2<- paste0("R ALERT: With a window size of ", win.size, " there are now ", nrow(denZI), " SNP positions")

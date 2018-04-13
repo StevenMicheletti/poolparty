@@ -39,3 +39,5 @@ snps4  <-round(snps4, 6)
 print("R ALERT: FET p-values combined using Fisher's Method")
 outname1 <- paste0(outdir,"/", alertname2, "2.fet")
 write.table(snps4, file=outname1, row.names=FALSE, col.names=FALSE)
+
+
