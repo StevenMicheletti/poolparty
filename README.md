@@ -2,7 +2,9 @@
 
 ### A Pool-Seq Bioinformatic Pipeline (ver 0.76)
 
-A BASH pipeline to align and analyze paired-end NGS data.
+A BASH pipeline to align and analyze paired-end NGS data.  
+
+Current citation: "Micheletti SJ and SR Narum. 2018. Utility of pooled sequencing for association mapping in nonmodel organisms. Molecular Ecology Resources 10.1111/1755-0998.12784"
 
 # Getting Started
 
