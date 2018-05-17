@@ -278,18 +278,22 @@ else
 	# Get indel/N blacklist from coverage file for all files specified 
 	TSO2B=$(date +%s | sha256sum | base64 | head -c 17 ; echo)
 	declare -a covarray=()
-		declare -i skipz="$((${#arr2[@]} + 3))"
+                declare -i  size=$(awk '{print NF}' $SYNC| sort -nu | head -n 1)
+	
+		#declare -i skipz="$(($size + 1))"
+	
 		for i in "${arr2[@]}" ; do
-			covarray+=( "$(( $skipz + $i ))" )
+	
+			covarray+=( "$(( $size + $i ))" )
 		done
 			bar2=$(printf "\n%s\n" "${covarray[@]}")
 				ONE=$(echo $bar2| sed -r 's/([^ ]+)/$\1/g')
 				TWO=$(echo $ONE | awk '$NF=$NF " >= 1 || "' OFS=" >= 1 || ")
 				THREE=$(echo $ONE | awk '$NF=$NF " > 0"' OFS=" > 0 || ")
 				FOUR=$(echo $TWO$THREE)
-				echo $FOUR
 			tail -n +2 $FZFILE | awk  "$FOUR" $COVFILE | awk '{print $1,$2}' > $OUTDIR/temp/${PREFIX}_$TSO2B
 			#subset coverage sync file created
+
 			
 	# Freq file, run through R to get final MAF for populations being compared(black list)
 	TSO3=$(date +%s | sha256sum | base64 | head -c 8 ; echo)
@@ -325,12 +329,14 @@ else
 					BLEN=$(wc -l < $OUTDIR/temp/${PREFIX}_$TSO5 )
 					echo "ALERT: There are $BLEN SNPs marked for removal"
 				gawk 'NR==FNR{a[$1,$2]=$3;next} ($1,$2) in a{next}{print $0, a[$1,$2]}' $OUTDIR/temp/${PREFIX}_$TSO5  $OUTDIR/temp/${PREFIX}_${TSO4}_B |  awk  '{gsub(" ","\t",$0); print;}' > $OUTDIR/${PREFIX}.sync
-					#rm $OUTDIR/temp/${PREFIX}_$TSO4
-					#rm $OUTDIR/temp/${PREFIX}_$TSO4B
-					#rm $OUTDIR/temp/${PREFIX}_$TSO5
+					rm $OUTDIR/temp/${PREFIX}_$TSO4
+					rm $OUTDIR/temp/${PREFIX}_$TSO4B
+					rm $OUTDIR/temp/${PREFIX}_$TSO5
 					FLEN=$(wc -l < $OUTDIR/${PREFIX}.sync )
  					echo "ALERT: There are $FLEN SNPs being analyzed after filters"
 fi
+
+
 #Run analyses 
 
 	echo "ALERT: Running pairwise analyses at $(date)"
@@ -541,7 +547,6 @@ fi
 if [[ -f $OUTDIR/temp/${PREFIX}*.params ]] ; then
 	rm $OUTDIR/temp/${PREFIX}*.params
 fi
-	#rm $OUTDIR/temp/${PREFIX}_${TSO3}*
-	rm $OUTDIR/temp/*.txt
-
+	rm $OUTDIR/temp/${PREFIX}_*
+	
 echo "ALERT: PPanalyze done at $(date)"
