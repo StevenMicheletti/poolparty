@@ -1,3 +1,11 @@
+------------------------
+Version 0.8, 5/17/2018
+------------------------
+-Added the ability to use a VCF with SNP locations and skip variant calling
+-Added the ability to only perform alignment with PPalign
+-Fixed a bug in PPanalyze that was improperly filtering the coverage tables
+-Can now use single-end reads; PPalign will automatically detect if reads are SE based on samplelist
+-A full and complete frequency table are no longer produced in PPalign. Now, a single frequency table that represents the old frequency table is produced (.fz)
 
 ------------------------
 Version 0.76, 4/10/2018
