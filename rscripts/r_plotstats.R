@@ -842,7 +842,7 @@ infile <- infile[,colSums(is.na(infile))<nrow(infile)]
   		scaffsize <-   infile[ which(infile$V1=='SCAFFOLD'), ]
   		if (nrow(chrsize) < 2) stop ("ERROR: Chromosome stats not present; will skip chromosome analyses")
   		s2 <- as.numeric(as.character(scaffsize[1,2]))
-  		sciff <- data.frame("scaff", s2)       
+  		sciff <- data.frame("scaffolds", s2)       
   		colnames(sciff) <- c('chr', 'bp')
   		chrsize <- data.frame(do.call('rbind', strsplit(as.character(chrsize$V2),'\t',fixed=TRUE)))
   		colnames(chrsize) <- c('chr', 'bp')
@@ -877,7 +877,7 @@ infile <- infile[,colSums(is.na(infile))<nrow(infile)]
   		chrsize <-   infile[ which(infile$V1=='CHROMOSOME'), ]
   		scaffsize <-   infile[ which(infile$V1=='SCAFFOLD'), ]
   		s2 <- as.numeric(as.character(scaffsize[1,2]))
-  		sciff <- data.frame("scaff", s2)       
+  		sciff <- data.frame("scaffolds", s2)       
   		colnames(sciff) <- c('chr', 'bp')
   		chrsize <- data.frame(do.call('rbind', strsplit(as.character(chrsize$V2),'\t',fixed=TRUE)))
   		colnames(chrsize) <- c('chr', 'bp')
@@ -903,6 +903,7 @@ infile <- infile[,colSums(is.na(infile))<nrow(infile)]
   	#Get mean values for all populations first
   		mchr$Proportion <- as.numeric(as.character(mchr$Proportion))
   		mean.mchr <- aggregate(mchr[, 3], list(mchr$Chromosome), mean)
+		mean.mchr <- mean.mchr[order(nchar(as.character(mean.mchr[[1]]))),]
   		std.mchr <- aggregate(mchr[, 3], list(mchr$Chromosome), stdev)
   		mean.mchr$chr <- chrsize$chr
   		mean.mchr$mean <- mean.mchr$x

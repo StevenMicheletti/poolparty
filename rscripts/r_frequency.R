@@ -93,7 +93,7 @@ alertname <- sub('.*/', '', alertname )
       gc()
     }
   PolY <-  Reduce("+", MCNT)
-  rm (MCNT) ; gc()
+  rm (MCNT) ; invisible(gc())
   PolY <- cbind(gpops[,1:2], PolY)
     #Polymorphic in at least one populations
       PolY1<- PolY[,1:2][ PolY[[3]] > 0]
@@ -110,10 +110,10 @@ alertname <- sub('.*/', '', alertname )
                 row.names=FALSE, col.names=FALSE, quote=FALSE) 
     write.table(PolY3, file=outname6,
                 row.names=FALSE, col.names=FALSE, quote=FALSE)
-    rm(PolY) ; gc()
-    rm(PolY1) ; gc()
-    rm(PolY2) ; gc()
-    rm(PolY3) ; gc()
+    rm(PolY) ; invisible(gc())
+    rm(PolY1) ; invisible(gc())
+    rm(PolY2) ; invisible(gc())
+    rm(PolY3) ; invisible(gc())
 
   #Get the major base at each position in each population
   #If a lot of missing data at a position, this will default to the ref base
@@ -210,18 +210,14 @@ alertname <- sub('.*/', '', alertname )
     print("R ALERT: Writing output files")
 
     Freqz <- cbind(gpops[,1:3],ComPos,Freqz)
-    Freqz2 <-na.omit(Freqz)
 
 # Make a frequency table with non missing data
-outname1 <- paste0(outdir, alertname2, "_full.fz")
-outname2 <- paste0(outdir, alertname2, "_complete.fz")
+outname1 <- paste0(outdir, alertname2, ".fz")
 outname3 <- paste0(outdirF, alertname2, "_MAF_fail.txt")
 outname7 <- paste0(outdirF, alertname2, "_indelN.txt")
 
     #Write temp file of allele counts
     write.table(Freqz, file=outname1,
-                row.names=FALSE, col.names=TRUE, quote=FALSE)
-    write.table(Freqz2, file=outname2,
                 row.names=FALSE, col.names=TRUE, quote=FALSE)
     write.table(MAFFAIL, file=outname3,
                 row.names=FALSE, col.names=FALSE, quote=FALSE)

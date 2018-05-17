@@ -344,17 +344,17 @@ if (xi == "NULL") {
 	alert2<-paste0("R ALERT: Initial mean score is: ", meanscore)
 	print(alert2)
 
-	if (meanscore >= 0) {
-		print ("R ALERT: Mean score is not negative, trying 90 % quantile")
+	if (meanscore >= 0 | meanl10 > 4 ) {
+		print ("R ALERT: Mean score is not negative or differentiation is too high trying 90 % quantile")
 		mdt2=mydata
 		xi=round((quantile(-log10(mydata$pval), probs = seq(0, 1, 0.05))[[19]]),3)
 		mdt2[,score:= -log10(pval)-xi]
 		meanscore <- mean(mdt2$score)
 		alert2<-paste0("R ALERT: Initial mean score is: ", meanscore)
 		print(alert2)
-			if (meanscore >= 0) {
+			if (meanscore >= 0 | meanl10 > 8) {
 					mdt3=mydata
-					print ("R ALERT: Mean score is still not negative, trying 95% quantile")
+					print ("R ALERT: Mean score is still not negative or differentiation is still too high, trying 95% quantile")
 					xi=round((quantile(-log10(mydata$pval), probs = seq(0, 1, 0.05))[[20]]),3)
 					mdt3[,score:= -log10(pval)-xi]
 					meanscore <- mean(mdt3$score)
@@ -404,7 +404,7 @@ if (KST >= 0.05 | FUni!="NULL" ) {
 	sigZones075=mydata[,sig_sl(lindley, pos, unique(thG075)),chr]
 	sigZones001=mydata[,sig_sl(lindley, pos, unique(thG001)),chr]
 	
-	print("R ALERT: Writing files")
+	print("R ALERT: Determining significance threshold and Writing files")
 	sig05name = paste0(outname, "_05sig.txt")
 	sig01name = paste0(outname, "_01sig.txt")
 	sig001name = paste0(outname, "_001sig.txt")

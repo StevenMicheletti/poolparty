@@ -33,7 +33,9 @@ start_time <- Sys.time()
 	Gline <-args[18]
 	makepdf <-args[19]
 	plottype <-args[20]
+	minval <-as.numeric(args[21])
 	
+
 	filenamezp = paste0(outname,".pdf")
 	filenamezn = paste0(outname,".png")
 	manename= paste0(outname, " Manhattan Plot")
@@ -455,8 +457,12 @@ if (ranges != "NULL") {
         snps$FST <- -log10(snps$FST)
 	    snps[which(!is.finite(snps$FST))] <- 0
       }
+	snps <- snps[(snps$FST >=minval),]
 	#use scale, use chromosome, use ranges 
-	print ("RALERT: Creating plots")
+	CHRNz <- as.numeric(length(unique(snps$CHR)))
+	chrt<- paste0 ("RALERT: Creating plots from genome with ", CHRNz, " chromosomes")
+	print(chrt)
+
 	if (scalez == "TRUE" & chromosome !="NULL" & chrrange !="NULL") {
 		highY= (max(snps$FST) + max(snps$FST) * 0.10)
 		xlabler= paste0( "Position on chromosome ", chromosome, " (mb)")
@@ -566,8 +572,11 @@ if (ranges == "NULL") {
         snps$FST <- -log10(snps$FST)
 	snps[which(!is.finite(snps$FST))] <- 0
       }
+	snps <- snps[(snps$FST >= minval),]
 	#use scale, use chromosome, use ranges 
-	print ("RALERT: Creating plots")
+	CHRNz <- as.numeric(length(unique(snps$CHR)))
+	chrt<- paste0 ("RALERT: Creating plots from genome with ", CHRNz, " chromosomes")
+	print(chrt)
 	if (scalez == "TRUE" & chromosome !="NULL" & chrrange !="NULL") {
 		highY= (max(snps$FST) + max(snps$FST) * 0.10)
 		xlabler= paste0( "Position on chromosome ", chromosome, " (mb)")
@@ -642,7 +651,7 @@ if (ranges == "NULL") {
 		invisible(dev.off())
 	}
 	
-	#Use scale,  don't use chromosome, dont use ranges #COMPLETE
+	#Use scale,  don't use chromosome, dont use ranges
 	if (scalez == "TRUE" & chromosome =="NULL" & chrrange =="NULL") {
 		highY= (max(snps$FST) + max(snps$FST) * 0.10)
 		if (makepdf != "NULL") {
