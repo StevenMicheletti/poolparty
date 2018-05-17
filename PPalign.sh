@@ -56,7 +56,7 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 
 	#Check for at least two entries in sample list (since pipeline input is paired-end data)
 		leN=$(wc -l $INDIR/"samplelist.txt" | cut -f1 -d' ') 
-		if  [[ $leN -lt 2 ]]  ; then
+		if  [[ $leN -lt 1 ]]  ; then
  			 echo 'ERROR: File "samplelist.txt" has less than two rows. Something wrong with file or not paired-end reads.'
    			 exit
 		fi
@@ -215,15 +215,19 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 	CHECK2=($CHECK)
 
 	for (( i=0; i<${#CHECK2[@]} ; i+=2 )) ; do
-		echo  completed pairs "${CHECK2[i+1]}" and "${CHECK2[i]}"
+		echo  Checking pairs "${CHECK2[i+1]}" and "${CHECK2[i]}"
 		if [ "${CHECK2[i+1]}" == "${CHECK2[i]}" ]; then
 		echo "ALERT: Correct Mates, proceeding"
+		single=off
 	else
-		echo "ERROR: Incorrect samples, check samplelist ya dummy! If you continue to have errors rename your input files."
-    		exit
+		echo "ALERT: Naming convention suggests single-end reads. Proceeding using single-end fqs."
+		echo "If reads are paired-end, check naming convention and try again."
+		single=on
+		break
 	fi
 	done
 
+if [[ "$single" =~(off)$ ]] ; then
 #Create prefix file; this indicates prefix before the first "_" which should be library identifiers
 	cut -d_ -f1 $OUTDIR/${OUTPOP}_sample_files.txt | awk '!seen[$0]++' | sed '/^$/d'  >  $OUTDIR/${OUTPOP}_prefixes.txt
 	printf "ALERT: Using libraries:\n$(cat $OUTDIR/${OUTPOP}_prefixes.txt)\n"
@@ -233,26 +237,46 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 		if [[ $CHCK1 != $CHCK3  ]] ; then
         	echo "ERROR: number of samples and prefixes don't match up ($CHCK1 vs $CHCK3) ; there is likely something wrong with the filenames or samplelist"
 			echo "Note that file name prefixes (text before the first underscore) must be unique for the paired files!"
-			echo "Check _sample_files.txt, paired-end libraries should be stacks on top of one another; if this isn't the case change the naming convention"
+			echo "Check _sample_files.txt, paired-end libraries should be stacked on top of one another; if this isn't the case change the naming convention"
 			exit
 		fi
+fi
+
+if [[ "$single" =~(on)$ ]] ; then
+#Create prefix file; this indicates prefix before the first "_" which should be library identifiers
+	cut -d_ -f1 $OUTDIR/${OUTPOP}_sample_files.txt | awk '!seen[$0]++' | sed '/^$/d'  >  $OUTDIR/${OUTPOP}_prefixes.txt
+	printf "ALERT: Using single-ended libraries:\n$(cat $OUTDIR/${OUTPOP}_prefixes.txt)\n"
+fi
 
 #Get number of populations that are represented by the libraries in your samplelist
 	if  [[ -f $OUTDIR/${OUTPOP}_poplist.txt ]] ; then
+		skipmerge=on
 		rm  $OUTDIR/${OUTPOP}_poplist.txt 
 	fi
 
 	array=($FILES)
 	array2=($POPS)
 	echo "ALERT: Checking ${#array[@]} files in samplelist" 
-	for (( i=0; i<${#array[@]} ; i+=2 )) ; do
-		e=${array[i]%%.*}
-		f=${array2[i]}
-		oZ=$(echo $e $f)
-		echo ${oZ} >> $OUTDIR/${OUTPOP}_poplist.txt
-		#remove any introduced characters
-		awk '{ sub("\r$", ""); print $0 }'  $OUTDIR/${OUTPOP}_poplist.txt > $OUTDIR/${OUTPOP}_poplist.tmp && mv $OUTDIR/${OUTPOP}_poplist.tmp $OUTDIR/${OUTPOP}_poplist.txt
-	done
+	if [[ "$single" =~(off)$ ]] ; then
+		for (( i=0; i<${#array[@]} ; i+=2 )) ; do
+			e=${array[i]%%.*}
+			f=${array2[i]}
+			oZ=$(echo $e $f)
+			echo ${oZ} >> $OUTDIR/${OUTPOP}_poplist.txt
+			#remove any introduced characters
+			awk '{ sub("\r$", ""); print $0 }'  $OUTDIR/${OUTPOP}_poplist.txt > $OUTDIR/${OUTPOP}_poplist.tmp && mv $OUTDIR/${OUTPOP}_poplist.tmp $OUTDIR/${OUTPOP}_poplist.txt
+		done
+	fi
+	if [[ "$single" =~(on)$ ]] ; then
+		for (( i=0; i<${#array[@]} ; i+=1 )) ; do
+			e=${array[i]%%.*}
+			f=${array2[i]}
+			oZ=$(echo $e $f)
+			echo ${oZ} >> $OUTDIR/${OUTPOP}_poplist.txt
+			#remove any introduced characters
+			awk '{ sub("\r$", ""); print $0 }'  $OUTDIR/${OUTPOP}_poplist.txt > $OUTDIR/${OUTPOP}_poplist.tmp && mv $OUTDIR/${OUTPOP}_poplist.tmp $OUTDIR/${OUTPOP}_poplist.txt
+		done
+	fi
 		rm $OUTDIR/${OUTPOP}_sample_pops.txt
 		rm $OUTDIR/${OUTPOP}_sample_files.txt
 		rm $OUTDIR/${OUTPOP}_prefixes.txt 
@@ -286,6 +310,7 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 	printf '%s\n' "${popfiles[@]}" | awk '{print "pop_" $0;}' | sort > ${OUTDIR}/pops/${OUTPOP}_files_for_pops.txt
 	awk '{ sub("\r$", ""); print $0 }'  ${OUTDIR}/pops/${OUTPOP}_files_for_pops.txt > ${OUTDIR}/pops/${OUTPOP}_files_for_pops.tmp && mv ${OUTDIR}/pops/${OUTPOP}_files_for_pops.tmp ${OUTDIR}/pops/${OUTPOP}_files_for_pops.txt
 
+
 #Trim by quality score, uses BBMAP (java-based)
 ##! ADDITIONAL TRIM PARAMETERS CAN BE ADDED BELOW AFTER "${BBMAPDIR}/bbduk.sh" !##
 ##CHECK BBMAP DOCUMENTATION FOR ADDITIONAL OPTIONS AND MODIFY LINE BELOW ##
@@ -296,35 +321,64 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 	array=($FILES)
 	echo trimming  ${#array[@]} files 
 
-	for (( i=0; i<${#array[@]} ; i+=2 )) ; do
-		b=${array[i]%%.*}
-		c=${array[i+1]%%.*}
-		o1=${OUTDIR}/trimmed/${b}.trim_1
-		o2=${OUTDIR}/trimmed/${b}.trim_2 
+	if [[ "$single" =~(off)$ ]] ; then
+		for (( i=0; i<${#array[@]} ; i+=2 )) ; do
+			b=${array[i]%%.*}
+			c=${array[i+1]%%.*}
+			o1=${OUTDIR}/trimmed/${b}.trim_1
+			o2=${OUTDIR}/trimmed/${b}.trim_2 
 
-		if  [[ -f $o1 ]] && [[ -f $o2 ]]  ; then
-			echo "ALERT: $o1 pair exists; skipping"
-			echo ${b} >> $OUTDIR/${OUTPOP}_names.txt
-		fi
+			if  [[ -f $o1 ]] && [[ -f $o2 ]]  ; then
+				echo "ALERT: $o1 pair exists; skipping"
+				echo ${b} >> $OUTDIR/${OUTPOP}_names.txt
+			fi
 
-		if [[ ! -f $o1 ]] && [[ ! -f $o2 ]] ; then
-		#Add modifications below if needed#
-		${BBMAPDIR}/bbduk.sh -${KMEM} in=$INDIR/${array[i]} in2=$INDIR/${array[i+1]} out=$o1 out2=$o2 \
-			ref=${BBMAPDIR}/resources/adapters.fa ktrim=r k=23 kmask=f tpe tbo qtrim=r trimq=${BQUAL} minlength=${MINLENGTH} minavgquality=${BQUAL} threads=${THREADZ} stats=$OUTDIR/trimmed/${b}_trimstats.txt
-			echo ${b} >> $OUTDIR/${OUTPOP}_names.txt
-		fi
-	done
+			if [[ ! -f $o1 ]] && [[ ! -f $o2 ]] ; then
+			#Add modifications below if needed#
+				echo ${b} >> $OUTDIR/${OUTPOP}_names.txt
+				if [[ -f ${OUTDIR}/BAM/${b}_filtered.bam ]] ; then
+					echo "ALERT: ${b}_filtered.bam exists and will not be re-trimmed or re-aligned."
+				else
+					${BBMAPDIR}/bbduk.sh -${KMEM} in=$INDIR/${array[i]} in2=$INDIR/${array[i+1]} out=$o1 out2=$o2 \
+						ref=${BBMAPDIR}/resources/adapters.fa ktrim=r k=23 kmask=f tpe tbo qtrim=r trimq=${BQUAL} minlength=${MINLENGTH} minavgquality=${BQUAL} threads=${THREADZ} stats=$OUTDIR/trimmed/${b}_trimstats.txt
+				fi
+			fi
+		done
+	fi
+	
+	if [[ "$single" =~(on)$ ]] ; then
+		for (( i=0; i<${#array[@]} ; i+=1 )) ; do
+			b=${array[i]%%.*}
+			c=${array[i+1]%%.*}
+			o1=${OUTDIR}/trimmed/${b}.trim_1
+
+			if  [[ -f $o1 ]] ; then
+				echo "ALERT: $o1  exists; skipping"
+				echo ${b} >> $OUTDIR/${OUTPOP}_names.txt
+			fi
+
+			if [[ ! -f $o1 ]] ; then
+				echo ${b} >> $OUTDIR/${OUTPOP}_names.txt
+				if [[ -f ${OUTDIR}/BAM/${b}_filtered.bam ]] ; then
+					echo "ALERT: ${b}_filtered.bam exists and will not be re-trimmed or re-aligned."
+				else
+					#Add modifications below if needed#
+					${BBMAPDIR}/bbduk.sh -${KMEM} in=$INDIR/${array[i]} out=$o1  \
+					ref=${BBMAPDIR}/resources/adapters.fa ktrim=r k=23 kmask=f tpe tbo qtrim=r trimq=${BQUAL} minlength=${MINLENGTH} minavgquality=${BQUAL} threads=${THREADZ} stats=$OUTDIR/trimmed/${b}_trimstats.txt
+				fi
+			fi
+		done
+	fi
 
 		#remove weird characters from names
 		awk '{ sub("\r$", ""); print $0 }'  $OUTDIR/${OUTPOP}_names.txt > $OUTDIR/${OUTPOP}_names.tmp && mv $OUTDIR/${OUTPOP}_names.tmp $OUTDIR/${OUTPOP}_names.txt
 	
 	#Check that trimmed folder was written to
 	if [ -z "$(ls -A ${OUTDIR}/trimmed)" ]; then
-		echo "ERROR: No trimmed files were produced. Check input files."
-		exit
+		echo "WARNING: No trimmed files were produced"
 	fi
 
-	if [[ "$QUALREPORT" =~(on)$ ]] ; then
+	if [[ "$QUALREPORT" =~(on)$ ]] && [ ! -z "$(ls -A ${OUTDIR}/trimmed)" ] ; then
 	# Quality report of trimmed files (FASTQC). This runs in the background as alignments are produced
 		if [ ! -d "$OUTDIR/quality" ]; then
 			mkdir $OUTDIR/quality
@@ -351,23 +405,36 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 	fi
 	
 	for i in $(cat $OUTDIR/${OUTPOP}_names.txt); do
-		if [[ -f ${OUTDIR}/BAM/${i}_aligned.bam ]] || [[ -f ${OUTDIR}/BAM/${i}_sorted.bam ]] ; then
-			echo "ALERT: ${i}_aligned.bam or ${i}_sorted.bam exists; skipping"
-		fi
-
-		if [[ ! -f ${OUTDIR}/BAM/${i}_aligned.bam ]] && [[ ! -f ${OUTDIR}/BAM/${i}_sorted.bam ]]  ; then
-			if [[ "$SPLITDISC" =~(on)$ ]] ; then 
-				echo "ALERT: Aligning with discordant and split read production"
-				#Makes unique lane and pop name for each library
-				a="@RG\tID:SMP"
-				b="\tPL:ILLUMINA\tLB:Pooled\tSM:"
-				c=$a$ITER$b$i
-				nice -n 19 ${BWA} mem -M -t $THREADZ -R $c \
-				"${GENOME}" \
-				"${OUTDIR}/trimmed/$i.trim_1" "${OUTDIR}/trimmed/$i.trim_2" | ${SAMBLASTER} -M -r -d "${OUTDIR}/BAM/$i.disc.sam" -s "${OUTDIR}/BAM/$i.split.sam"  | ${SAMTOOLS} view -Sb -q ${MAPQ} - > "${OUTDIR}/BAM/${i}_aligned.bam"
-			fi	
+		if [[ -f ${OUTDIR}/BAM/${i}_aligned.bam ]] || [[ -f ${OUTDIR}/BAM/${i}_sorted.bam ]] || [[ -f ${OUTDIR}/BAM/${i}_filtered.bam ]]; then
+			echo "ALERT: ${i}_aligned.bam or ${i}_sorted.bam exists or ${i}_filtered.bam; skipping"
+		else
+			if [[ "$single" =~(off)$ ]] ; then
+				if [[ "$SPLITDISC" =~(on)$ ]] ; then 
+					echo "ALERT: Aligning with discordant and split read production"
+					#Makes unique lane and pop name for each library
+					a="@RG\tID:SMP"
+					b="\tPL:ILLUMINA\tLB:Pooled\tSM:"
+					c=$a$ITER$b$i
+					nice -n 19 ${BWA} mem -M -t $THREADZ -R $c \
+					"${GENOME}" \
+					"${OUTDIR}/trimmed/$i.trim_1" "${OUTDIR}/trimmed/$i.trim_2" | ${SAMBLASTER} -M -r -d "${OUTDIR}/BAM/$i.disc.sam" -s "${OUTDIR}/BAM/$i.split.sam"  | ${SAMTOOLS} view -Sb -q ${MAPQ} - > "${OUTDIR}/BAM/${i}_aligned.bam"
+				fi	
 			
-			if [[ "$SPLITDISC" =~(off)$ ]] ; then 
+				if [[ "$SPLITDISC" =~(off)$ ]] ; then 
+					echo "ALERT: Aligning without discordant and split read production"
+					#Makes unique lane and pop name for each library
+					a="@RG\tID:SMP"
+					b="\tPL:ILLUMINA\tLB:Pooled\tSM:"
+					c=$a$ITER$b$i
+					nice -n 19 ${BWA} mem -M -t $THREADZ -R $c \
+					"${GENOME}" \
+					"${OUTDIR}/trimmed/$i.trim_1" "${OUTDIR}/trimmed/$i.trim_2" | ${SAMBLASTER} -M -r | ${SAMTOOLS} view -Sb -q ${MAPQ} - > "${OUTDIR}/BAM/${i}_aligned.bam"
+				fi
+			fi
+			if [[ "$single" =~(on)$ ]] ; then
+				if [[ "$SPLITDISC" =~(on)$ ]] ; then 
+					echo "ALERT: Cannot perform discordant/split-end analyses on single-end reads! ignoring"
+				fi	
 				echo "ALERT: Aligning without discordant and split read production"
 				#Makes unique lane and pop name for each library
 				a="@RG\tID:SMP"
@@ -375,13 +442,13 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 				c=$a$ITER$b$i
 				nice -n 19 ${BWA} mem -M -t $THREADZ -R $c \
 				"${GENOME}" \
-				"${OUTDIR}/trimmed/$i.trim_1" "${OUTDIR}/trimmed/$i.trim_2" | ${SAMBLASTER} -M -r | ${SAMTOOLS} view -Sb -q ${MAPQ} - > "${OUTDIR}/BAM/${i}_aligned.bam"
+				"${OUTDIR}/trimmed/$i.trim_1" | ${SAMBLASTER} -M -r | ${SAMTOOLS} view -Sb -q ${MAPQ} - > "${OUTDIR}/BAM/${i}_aligned.bam"
 			fi
 		fi
 
 	ITER="$(($ITER + 1))"
 	done
-	
+
 	echo "ALERT: Finished BWA mem at $(date)"
 		#reports will have read alignment results for each bam file
 		if [ ! -d "$OUTDIR/reports" ]; then
@@ -390,24 +457,21 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 
 # Sorting BAM files and filtering unpaired reads (PICARDTOOLS, SAMTOOLS)
 	for i in $(cat $OUTDIR/${OUTPOP}_names.txt); do
-		if  [[ -f ${OUTDIR}/BAM/${i}_sorted.bam ]] ; then
-			echo "ALERT: ${i}_sorted.bam exists; skipping"
-		fi
-
-		if [[ ! -f ${OUTDIR}/BAM/${i}_sorted.bam ]] ; then
+		if  [[ -f ${OUTDIR}/BAM/${i}_sorted.bam ]] || [[ -f ${OUTDIR}/BAM/${i}_filtered.bam ]] ; then
+			echo "ALERT: ${i}_sorted.bam or filtered.bam exists; skipping"
+		else
 			echo "ALERT: Picardtools started sorting ${OUTDIR}/BAM/${i}_aligned.bam at $(date) "
 			nice -n 19 java -XX:ParallelGCThreads=$THREADZ -${KMEM} -Djava.io.tmpdir=`pwd`/tmp -jar ${PICARDTOOLS} SortSam I= ${OUTDIR}/BAM/${i}_aligned.bam O= ${OUTDIR}/BAM/${i}_sorted.bam VALIDATION_STRINGENCY=SILENT QUIET=true SO=coordinate TMP_DIR=`pwd`/tmp 
 		fi
 	done
 		echo "ALERT: Picardtools finished sorting all BAMS at $(date) " 
-
 	#Making reports for sorted BAM files
-		echo "ALERT: Alignment reports started at $(date) and will run in the background"
+		echo "ALERT: Alignment reports started at $(date) for new samples"
 		for i in $(cat $OUTDIR/${OUTPOP}_names.txt); do
-		if [[ ! -f ${OUTDIR}/reports/${i}_${OUTPOP}_aln_report.txt ]] ; then
-			nice -n 19 ${SAMTOOLS} flagstat ${OUTDIR}/BAM/${i}_sorted.bam > ${OUTDIR}/reports/${i}_${OUTPOP}_aln_report.txt
-		fi
-		done &
+			if [[ ! -f ${OUTDIR}/reports/${i}_aln_report.txt ]] ; then
+				nice -n 19 ${SAMTOOLS} flagstat ${OUTDIR}/BAM/${i}_sorted.bam > ${OUTDIR}/reports/${i}_aln_report.txt
+			fi
+		done 
 
 #Create semaphore to parallel run at specified 'THREADZ'
 	open_sem(){
@@ -433,12 +497,18 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 		task(){
 			if [[ -f ${OUTDIR}/BAM/${i}_filtered.bam ]] ; then
 				echo "ALERT: ${i}_filtered.bam exists; skipping"
+			else
+				if [[ "$single" =~(off)$ ]] ; then
+					echo "ALERT: samtools is filtering ${OUTDIR}/BAM/${i}_sorted.bam at $(date) "
+					nice -n 19 ${SAMTOOLS} view -b -F 0x04 -f 0x02 ${OUTDIR}/BAM/${i}_sorted.bam > ${OUTDIR}/BAM/${i}_filtered.bam 
+				else
+					cp ${OUTDIR}/BAM/${i}_sorted.bam ${OUTDIR}/BAM/${i}_filtered.bam 
+				fi
 			fi
-
-			if [[ ! -f ${OUTDIR}/BAM/${i}_filtered.bam ]] ; then
+			if [[ ! -f ${OUTDIR}/BAM/${i}_filtered.bam ]] && [[ "$single" =~(on)$ ]] ; then
 
 				echo "ALERT: samtools is filtering ${OUTDIR}/BAM/${i}_sorted.bam at $(date) "
-				nice -n 19 ${SAMTOOLS} view -b -F 0x04 -f 0x02 ${OUTDIR}/BAM/${i}_sorted.bam > ${OUTDIR}/BAM/${i}_filtered.bam 
+				nice -n 19 ${SAMTOOLS} view -b ${OUTDIR}/BAM/${i}_sorted.bam > ${OUTDIR}/BAM/${i}_filtered.bam 
 			fi
 			}
 
@@ -446,7 +516,7 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 		open_sem $N
 			for i in $(cat $OUTDIR/${OUTPOP}_names.txt); do
 				run_with_lock task $i
-		done  ; wait
+			done ; wait
 
 		echo "ALERT: Samtools finished filtering all BAMs at $(date) "
 
@@ -457,8 +527,13 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 		fi
 	done	
 
-#Combine BAMS into specified populations. Uses parallel
 
+	if [ ! -z $ALIGNONLY ] &&  [[ "$ALIGNONLY" =~(on)$ ]] ; then
+			echo "ALERT: PPalign Alignment Only completed at $(date) "
+			exit
+	fi
+
+#Combine BAMS into specified populations. Uses parallel
 			POPZ=$(cat ${OUTDIR}/pops/${OUTPOP}_files_for_pops.txt)	
 			declare -a farray=($POPZ)
 			echo "ALERT: Samtools is combining ${#farray[@]} populations into BAMS at $(date)"
@@ -466,27 +541,26 @@ echo "ALERT: Beginning PoolParty run at $(date)"
 task() {
 			declare -i pnuM=$(wc -l ${OUTDIR}/pops/${i}.txt |  cut -f1 -d' ')
 			declare -a barray=$(awk '{print "'${OUTDIR}/BAM/'"$0"_filtered.bam"}' ${OUTDIR}/pops/${i}.txt)
-			
-			if [[ -f ${OUTDIR}/BAM/${i}.bam ]] ; then
-				echo "ALERT: Population ${i}.bam exists; skipping"
+			#If population consists of one library, simply duplicate the bam file. 
+			if [ $pnuM -lt 2 ] ; then 
+				cp $barray ${OUTDIR}/BAM/${i}.bam
 			else
-
-				#If population consists of one library, simply duplicate the bam file. 
-				if [ $pnuM -lt 2 ] ; then 
-					cp $barray ${OUTDIR}/BAM/${i}.bam
-				else
-					echo "ALERT: Samtools is merging $pnuM bams into populations ${i}.bam at $(date) "
-					samtools merge -f ${OUTDIR}/BAM/${i}.bam $barray
-				fi
+				echo "ALERT: Samtools is merging $pnuM bams into populations ${i}.bam at $(date) "
+				samtools merge -f ${OUTDIR}/BAM/${i}.bam $barray
 			fi
 	}
 
-	N=$THREADZ
-	open_sem $N
-		for i in "${farray[@]}" ; do
-			run_with_lock task $i
-	done ; wait
-	echo "ALERT: Samtools finished merging all bams at $(date) "
+
+	if  [[ "$skipmerge" =~(on)$ ]] ; then
+		echo "ALERT: Skipping population merge; identical poplist exists"
+	else
+		N=$THREADZ
+		open_sem $N
+			for i in "${farray[@]}" ; do
+				run_with_lock task $i
+			done ; wait
+		echo "ALERT: Samtools finished merging all bams at $(date) "
+	fi
 
 #Call SNPs and print variant sites
 	echo "ALERT: bcftools is calling variants  at $(date) this might take awhile..."
@@ -502,6 +576,20 @@ task() {
 			mkdir $OUTDIR/filters
 		fi
 		
+		if [ ! -z $USEVCF ]; then
+			echo "ALERT: Using $USEVCF for SNPs, skipping variant calling"
+			${BCFTOOLS} view  -i  'MIN(DP)>'$MINDP' & MIN(QUAL)>'$SNPQ' ' $USEVCF  > $OUTDIR/${OUTPOP}_Qualtemp.VCF
+				declare -i after=$(grep -v "^#" $OUTDIR/${OUTPOP}_Qualtemp.VCF | wc -l) 
+				declare -i lost=$(($before-$after))
+				echo "ALERT: $lost SNPs removed due to QUAL < $SNPQ and total DP < $MINDP "
+			${BCFTOOLS} view  -i  'MAF[0]> '$MAF' ' $OUTDIR/${OUTPOP}_Qualtemp.VCF > $OUTDIR/${OUTPOP}.VCF
+				declare -i afterm=$( grep -v "^#" $OUTDIR/${OUTPOP}.VCF | wc -l) 
+				declare -i lostm=$(($after-$afterm))
+				echo "ALERT: Additional $lostm SNPs removed due to global MAF < $MAF "
+				echo "ALERT: $afterm total SNPs retained after SNP calling"
+				grep -v "^#"  $OUTDIR/${OUTPOP}.VCF | awk '{gsub("=|;", "\t", $0); print;}' \
+						| awk '{print $1,$2,$6,$9}'  >  $OUTDIR/${OUTPOP}_variants.txt
+		else
 			${SAMTOOLS} mpileup -uf ${GENOME} -B $COMBINE |  ${BCFTOOLS} call --threads ${THREADZ} -mv -Ov >  $OUTDIR/${OUTPOP}_full.VCF 
 				declare -i before=$(grep -v "^#" $OUTDIR/${OUTPOP}_full.VCF | wc -l)
 				echo "ALERT: $before SNPs total SNPS called without filters"
@@ -516,10 +604,12 @@ task() {
 				echo "ALERT: $afterm total SNPs retained after SNP calling"
 				grep -v "^#"  $OUTDIR/${OUTPOP}.VCF | awk '{gsub("=|;", "\t", $0); print;}' \
 						| awk '{print $1,$2,$6,$9}'  >  $OUTDIR/${OUTPOP}_variants.txt
-			
-		if [[ ! -s $OUTDIR/${OUTPOP}_full.VCF ]] ; then
-			echo "ERROR: Variants were not filtered, $OUTDIR/${OUTPOP}_variants.txt was not produced. Check for sufficient memory"
-			exit
+
+
+			if [[ ! -s $OUTDIR/${OUTPOP}_full.VCF ]] ; then
+				echo "ERROR: Variants were not filtered, $OUTDIR/${OUTPOP}_variants.txt was not produced. Check for sufficient memory"
+				exit
+			fi
 		fi
 			rm $OUTDIR/${OUTPOP}_Qualtemp.VCF
 			rm $OUTDIR/${OUTPOP}_full.VCF
@@ -731,7 +821,7 @@ echo "ALERT: Creating allele frequency tables in R"
 					echo "ALERT: Frequency file ${OUTPOP}_full.fz and its counterparts created at $(date) "
 				fi
 				
-				if [[ ! -s ${OUTDIR}/${OUTPOP}_full.fz  ]]  ; then
+				if [[ ! -s ${OUTDIR}/${OUTPOP}.fz  ]]  ; then
 					echo "ERROR: Frequency table is empty. Check for R errors"
 					exit
 				fi
@@ -745,7 +835,7 @@ echo "ALERT: Creating allele frequency tables in R"
 						rout=$OUTDIR/
 						rout2=$OUTDIR/filters/
 						Rscript $BASEDIR/rscripts/r_frequency.R $rin $rout $rout2 $MAF $INDCONT
-						if [[ ! -s ${OUTDIR}/${OUTPOP}_norm_full.fz  ]]  ; then
+						if [[ ! -s ${OUTDIR}/${OUTPOP}_norm.fz  ]]  ; then
 							echo "ERROR: Normalized frequency table is empty. You likely ran out of memory."
 							echo "Consider reducing number of individuals or SNPs using higher filter thresholds."
 							exit
@@ -755,7 +845,7 @@ echo "ALERT: Creating allele frequency tables in R"
 					fi
 				fi
 
-echo "ALERT: PPalign complete at $(date) "
+echo "ALERT: PPalign completed at $(date) "
 			if [[ -f $OUTDIR/${OUTPOP}.gtffile.params ]] ; then
 					rm $OUTDIR/${OUTPOP}.gtffile.params
 			fi
