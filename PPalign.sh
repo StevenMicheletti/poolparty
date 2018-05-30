@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PoolParty_align_v0.76
+#PoolParty_align_v0.8
 #By Steven Micheletti
 
 set -o pipefail
