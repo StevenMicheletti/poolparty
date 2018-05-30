@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#PoolParty_analyze_v0.8
 source $1
 BASEDIR=$(dirname "$0")
 
