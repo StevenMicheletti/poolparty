@@ -1,8 +1,13 @@
 #!bin/R
 
+
+
+#PoolParty v0.81
+#r_plotter
+
+
 #plotter.sh pipes arguments
 #Uses qqman for quick manhattan plotting
-
 
 #Install packages if they don't exist already
 	list.of.packages <- c("data.table","plyr")
@@ -34,6 +39,7 @@ start_time <- Sys.time()
 	makepdf <-args[19]
 	plottype <-args[20]
 	minval <-as.numeric(args[21])
+        ztrans <- args[22]
 	
 
 	filenamezp = paste0(outname,".pdf")
@@ -54,6 +60,11 @@ if (logtrans != "NULL") {
 if (Gline != "F") {
 	Gline=as.numeric(Gline)
 }
+
+if (ztrans != "NULL" & ztrans != "FALSE" & ztrans != "F" ) {
+	ztrans="TRUE"
+}
+
 	
 if (chrrange != "NULL") {
 	chrrange1=as.numeric(sub('\\,.*', '', chrrange))
@@ -457,6 +468,11 @@ if (ranges != "NULL") {
         snps$FST <- -log10(snps$FST)
 	    snps[which(!is.finite(snps$FST))] <- 0
       }
+      if (ztrans == "TRUE") {
+        snps$FST <- scale(snps$FST)
+	    snps[which(!is.finite(snps$FST))] <- 0
+      }
+
 	snps <- snps[(snps$FST >=minval),]
 	#use scale, use chromosome, use ranges 
 	CHRNz <- as.numeric(length(unique(snps$CHR)))
@@ -572,6 +588,11 @@ if (ranges == "NULL") {
         snps$FST <- -log10(snps$FST)
 	snps[which(!is.finite(snps$FST))] <- 0
       }
+      if (ztrans == "TRUE") {
+        snps$FST <- scale(snps$FST)
+	snps[which(!is.finite(snps$FST))] <- 0
+      }
+
 	snps <- snps[(snps$FST >= minval),]
 	#use scale, use chromosome, use ranges 
 	CHRNz <- as.numeric(length(unique(snps$CHR)))

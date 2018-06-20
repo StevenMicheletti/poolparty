@@ -462,7 +462,7 @@ if (KST >= 0.05 | FUni!="NULL" ) {
 		print("R ALERT: p-values are not uniform, determining correction coefficients")
 		coefsG=coefsGumb(mydata, Ls=seq(30000,60000,10000), nSeq=5000)
 		
-		print("R ALERT: Writing files")
+		print("R ALERT: Determining significance thresholds and writing files")
 		chrInfo[,thG05:=threshold(L, cor, coefsG$aCoef, coefsG$bCoef,0.05),]
 		chrInfo[,thG01:=threshold(L, cor, coefsG$aCoef, coefsG$bCoef,0.01),]
 		chrInfo[,thG001:=threshold(L, cor, coefsG$aCoef, coefsG$bCoef,0.001),]
