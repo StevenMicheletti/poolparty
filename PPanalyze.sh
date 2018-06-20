@@ -1,5 +1,8 @@
 #!/bin/bash
-#PoolParty_analyze_v0.8
+
+#PoolParty v0.81
+#PPanalyze
+
 source $1
 BASEDIR=$(dirname "$0")
 
@@ -287,10 +290,13 @@ else
 			covarray+=( "$(( $size + $i ))" )
 		done
 			bar2=$(printf "\n%s\n" "${covarray[@]}")
+				echo $bar2 
 				ONE=$(echo $bar2| sed -r 's/([^ ]+)/$\1/g')
+				echo $ONE
 				TWO=$(echo $ONE | awk '$NF=$NF " >= 1 || "' OFS=" >= 1 || ")
 				THREE=$(echo $ONE | awk '$NF=$NF " > 0"' OFS=" > 0 || ")
 				FOUR=$(echo $TWO$THREE)
+				echo $FOUR
 			tail -n +2 $FZFILE | awk  "$FOUR" $COVFILE | awk '{print $1,$2}' > $OUTDIR/temp/${PREFIX}_$TSO2B
 			#subset coverage sync file created
 
@@ -426,7 +432,7 @@ if [[ "$FST" =~(on)$ ]]; then
 				echo "ALERT: $loss SNPs were removed from fst analysis due to Ns, indels, or uninformative comparisons"
 				echo "ALERT: $after fst SNPs  remain"
 				rm $OUTDIR/temp/${PREFIX}**.fst*
-				rm $OUTDIR/*fst.params
+
 fi
 
 if [[ "$SLIDINGFST" =~(on)$ ]]; then
@@ -526,7 +532,7 @@ if [[ "$FET" =~(on)$ ]]; then
 				echo "ALERT: $loss SNPs were removed from FET analysis due to Ns, indels, or uninformative comparisons"
 				echo "ALERT: $after FET SNPs remain"
 				rm $OUTDIR/temp/${PREFIX}**.fet*
-				rm $OUTDIR/*fet.params
+
 
 fi
 
@@ -547,6 +553,7 @@ fi
 if [[ -f $OUTDIR/temp/${PREFIX}*.params ]] ; then
 	rm $OUTDIR/temp/${PREFIX}*.params
 fi
+if [[ -f $OUTDIR/temp/${PREFIX}_* ]] ; then
 	rm $OUTDIR/temp/${PREFIX}_*
-	
+fi
 echo "ALERT: PPanalyze done at $(date)"

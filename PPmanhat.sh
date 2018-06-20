@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#PoolParty v0.81
+#PPmanhat
+
+
 BASEDIR=$(dirname "$0")
 
 if [[ ${BASEDIR} != *poolparty* ]];then
@@ -21,7 +25,7 @@ set -e
 
 
 #Define arguments
-while getopts ":o:i:c:l:a:s:r:C:R:1:2:L:p:t:h:" opt; do
+while getopts ":o:i:c:l:a:s:r:C:R:1:2:L:p:t:m:z:h:" opt; do
   case $opt in
     o) output="$OPTARG"
     ;;
@@ -51,9 +55,13 @@ while getopts ":o:i:c:l:a:s:r:C:R:1:2:L:p:t:h:" opt; do
     ;;
     t) plottype="$OPTARG"
     ;;
+    m) minval="$OPTARG"
+    ;;
+    z) ztrans="$OPTARG"
+    ;;
     h) help="$OPTARG"
     ;;  
-    \?) echo "Invalid option -$OPTARG" >&15
+    \?) echo "Invalid option -$OPTARG" >&17
     ;;
   esac
 done
@@ -64,7 +72,7 @@ if [ -z "$output" ] || [ -z "$input" ] ; then
 	printf "Usage:   PPmanhat -i [input] -o [output name] -c [chromosome range file] -l [-log 10 trans] \n"
 	printf "                  -a [analysis type] -s [scaffold heading] -r [scale by value] \n"
         printf "                  -C [plot chromosome] -R [plot range within chromosome] -1 [color1] -2 [color2] \n"
-	printf " 	          -L [threshold line] -t [plot type] -p [make pdf too]"
+	printf " 	          -L [threshold line] -t [plot type] -p [make pdf too] -z [z transform values]"
 	printf "\n Argument                             Description                                                     Default\n \n"
 	printf " - i   [input]                        : Input file with four column format (CHR,POS,SNP,FST/P)        [REQUIRED] \n"
 	printf " - o   [output name]                  : Prefix used to define the analysis                            [REQUIRED] \n" 
@@ -79,6 +87,8 @@ if [ -z "$output" ] || [ -z "$input" ] ; then
 	printf " - 2   [color2]                       : Color of even chromosomes (R base colors)                     [darkblue] \n"
 	printf " - L   [threshold]                    : Draw threshold line at this value (integer)                   [NULL] \n"
 	printf " - t   [plot type]                    : How to plot points (point,line,bar)                           [point] \n"
+	printf " - m   [min value]                    : Don't plot SNPs less than this value (float/integer)          [0] \n"
+	printf " - z   [z trans]                      : Z transform value                                             [FALSE] \n"
 	printf " - p   [make pdf]                     : Make a pdf output in addition to png output                   [NULL] \n \n"
 	exit
 fi
@@ -96,6 +106,9 @@ fi
 [ -z "$gline" ] && gline=F
 [ -z "$makepdf" ] && makepdf=NULL
 [ -z "$plottype" ] && plottype=point
+[ -z "$minval" ] && minval=0
+[ -z "$ztrans" ] && ztrans=F
 
-	Rscript $BASEDIR/rscripts/r_plotter.R $input $output $outdir $analtype $logtrans $ranges $scaff $scale $chromosome $chrrange $color1 $color2 $gline $makepdf $plottype
+
+	Rscript $BASEDIR/rscripts/r_plotter.R $input $output $outdir $analtype $logtrans $ranges $scaff $scale $chromosome $chrrange $color1 $color2 $gline $makepdf $plottype $minval $ztrans
 

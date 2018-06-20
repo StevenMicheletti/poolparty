@@ -1,4 +1,11 @@
 ------------------------
+Version 0.81, 6/14/2018
+------------------------
+-PPmanhat will now perform z-transformation on values with the -z argument
+-Minor bug fixes  and additional error checking
+
+
+------------------------
 Version 0.8, 5/17/2018
 ------------------------
 -Added the ability to use a VCF with SNP locations and skip variant calling

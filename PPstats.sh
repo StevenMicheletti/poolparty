@@ -1,5 +1,8 @@
 #!/bin/bash
-#PoolParty_stats_v0.8
+
+#PoolParty v0.81
+#PPstats
+
 source $1
 BASEDIR=$(dirname "$0")
 
@@ -30,9 +33,6 @@ fi
 		exit
 	fi
 
-echo "V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14" > ${OUTDIR}/${OUTFILE}
-
-
 #Check for presence of MPILEUP
 
 	if [[ ! -f ${MPILEUP} ]] ; then
@@ -54,11 +54,38 @@ if [[ ! -f ${FAI} ]] ; then
     exit
 fi
 
-if ! grep -q "$SCAFP" $FAI;
- then
-    echo "ERROR: Scaffold prefix is wrong. Check fai file for scaffold prefix. Aborting"
- 	exit
+if [[ ${FAI} =~ ".fai" ]];
+    then
+    :
+else
+    echo "ERROR: fai file does not have the correct extension. Genome fai file must end in .fai"
+    exit
 fi
+
+
+if [[ ${MPILEUP} =~ "_stats" ]]; then
+    :
+else
+    echo "ERROR: Mpileup should be the statistics version of the mpileup file which contains '_stats' in the filename "
+    exit
+fi
+
+
+
+if [ ! -z "$SCAFP" ]; then
+	if ! grep -q $SCAFP $FAI;
+ 	then
+   		echo "ERROR: Scaffold prefix is wrong. Check fai file for scaffold prefix. Aborting"
+ 		exit
+	fi
+fi
+
+
+if [ -z "$SCAFP" ]; then
+     echo "ALERT: No scaffolds are identified and thus all scaffolds will be used according to the .fai file"
+     SCAFP="ZcXYxxtxF3"
+fi
+
 
 if [[ $MINCOV =~ ^[\-0-9]+$ ]] && (( $MINCOV < 1)); then
     echo "ERROR: Minimum coverage must be a positive integer. Aborting."
@@ -75,6 +102,8 @@ if  [[ $(command -v mkfifo)  = "" ]] ; then
 	echo "WARNING: piping 'mkfifo' not detected on system or available on drive. This may cause issues in downstream analyses"
 	echo "Edit PPstats.sh and redirect mkfifo to another drive"
 fi
+
+
 
 #Check for R
 		if  [[ $(command -v Rscript)  = "" ]] ; then
@@ -96,6 +125,8 @@ fi
 	fi
 
 echo "CONF: Parameter check passed. moving on..."
+
+echo "V1 V2 V3 V4 V5 V6 V7 V8 V9 V10 V11 V12 V13 V14" > ${OUTDIR}/${OUTFILE}
 
 #Check complete
 

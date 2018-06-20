@@ -1,5 +1,9 @@
 #bin/bash!
 
+#PoolParty v0.81
+#PPruncmh
+
+
 BASEDIR=$(dirname "$0")
 
 if [[ ${BASEDIR} != *poolparty* ]];then
@@ -56,12 +60,10 @@ echo "ALERT: Running CMH test at $(date)"
 
 perl ${pooldir}/cmh-test.pl --input ${input} --output ${outdir}/${outname}_raw.cmh --min-count 1 --min-coverage ${mincov} --max-coverage ${maxcov} --population ${pops}
 
-
 echo "ALERT: CMH test done at $(date)"
 echo "ALERT: Formatting CMH results"
 
-	paste <(awk {'print $1,$2'} ${outdir}/${outname}_raw.cmh ) <(awk '{ print NR, $1}'  ${outdir}/${outname}_raw.cmh | awk '{print $1}') <(awk '{print $(NF-0)}'  ${outdir}/${outname}_raw.cmh) \
-			|  awk '{gsub("\t"," ",$0); print;}' > ${outdir}/${outname}.cmh
+	paste -d' ' <(awk {'print $1,$2'} ${outdir}/${outname}_raw.cmh ) <(awk '{print NR}' ${outdir}/${outname}_raw.cmh) <(awk '{print $(NF-0)}' ${outdir}/${outname}_raw.cmh) > ${outdir}/${outname}.cmh
 	rm ${outdir}/${outname}_raw.cmh.rin
 	rm ${outdir}/${outname}_raw.cmh.rout
 	rm ${outdir}/${outname}_raw.cmh.params

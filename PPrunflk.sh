@@ -1,5 +1,9 @@
 #!/bin/bash
 
+#PoolParty v0.81
+#PPrunflk
+
+
 BASEDIR=$(dirname "$0")
 
 if [[ ${BASEDIR} != *poolparty* ]];then

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#PoolParty v0.81
-#PPalign
+#PoolParty_align_v0.76
+#By Steven Micheletti
 
 set -o pipefail
 
@@ -250,7 +250,6 @@ fi
 
 #Get number of populations that are represented by the libraries in your samplelist
 	if  [[ -f $OUTDIR/${OUTPOP}_poplist.txt ]] ; then
-		skipmerge=on
 		rm  $OUTDIR/${OUTPOP}_poplist.txt 
 	fi
 
@@ -466,12 +465,12 @@ fi
 	done
 		echo "ALERT: Picardtools finished sorting all BAMS at $(date) " 
 	#Making reports for sorted BAM files
-		echo "ALERT: Alignment reports started at $(date) for new samples"
+		echo "ALERT: Alignment reports started at $(date) and will run in the background"
 		for i in $(cat $OUTDIR/${OUTPOP}_names.txt); do
-			if [[ ! -f ${OUTDIR}/reports/${i}_aln_report.txt ]] ; then
-				nice -n 19 ${SAMTOOLS} flagstat ${OUTDIR}/BAM/${i}_sorted.bam > ${OUTDIR}/reports/${i}_aln_report.txt
+			if [[ ! -f ${OUTDIR}/reports/${i}_${OUTPOP}_aln_report.txt ]] ; then
+				nice -n 19 ${SAMTOOLS} flagstat ${OUTDIR}/BAM/${i}_sorted.bam > ${OUTDIR}/reports/${i}_${OUTPOP}_aln_report.txt
 			fi
-		done 
+		done &
 
 #Create semaphore to parallel run at specified 'THREADZ'
 	open_sem(){
@@ -541,26 +540,27 @@ fi
 task() {
 			declare -i pnuM=$(wc -l ${OUTDIR}/pops/${i}.txt |  cut -f1 -d' ')
 			declare -a barray=$(awk '{print "'${OUTDIR}/BAM/'"$0"_filtered.bam"}' ${OUTDIR}/pops/${i}.txt)
-			#If population consists of one library, simply duplicate the bam file. 
-			if [ $pnuM -lt 2 ] ; then 
-				cp $barray ${OUTDIR}/BAM/${i}.bam
+			
+			if [[ -f ${OUTDIR}/BAM/${i}.bam ]] ; then
+				echo "ALERT: Population ${i}.bam exists; skipping"
 			else
-				echo "ALERT: Samtools is merging $pnuM bams into populations ${i}.bam at $(date) "
-				samtools merge -f ${OUTDIR}/BAM/${i}.bam $barray
+
+				#If population consists of one library, simply duplicate the bam file. 
+				if [ $pnuM -lt 2 ] ; then 
+					cp $barray ${OUTDIR}/BAM/${i}.bam
+				else
+					echo "ALERT: Samtools is merging $pnuM bams into populations ${i}.bam at $(date) "
+					samtools merge -f ${OUTDIR}/BAM/${i}.bam $barray
+				fi
 			fi
 	}
 
-
-	if  [[ "$skipmerge" =~(on)$ ]] ; then
-		echo "ALERT: Skipping population merge; identical poplist exists"
-	else
-		N=$THREADZ
-		open_sem $N
-			for i in "${farray[@]}" ; do
-				run_with_lock task $i
-			done ; wait
-		echo "ALERT: Samtools finished merging all bams at $(date) "
-	fi
+	N=$THREADZ
+	open_sem $N
+		for i in "${farray[@]}" ; do
+			run_with_lock task $i
+	done ; wait
+	echo "ALERT: Samtools finished merging all bams at $(date) "
 
 #Call SNPs and print variant sites
 	echo "ALERT: bcftools is calling variants  at $(date) this might take awhile..."
@@ -576,9 +576,8 @@ task() {
 			mkdir $OUTDIR/filters
 		fi
 		
-		if [ ! -z $USEVCF ]; then
-			echo "ALERT: Using $USEVCF for SNPs, skipping variant calling"
-			${BCFTOOLS} view  -i  'MIN(DP)>'$MINDP' & MIN(QUAL)>'$SNPQ' ' $USEVCF  > $OUTDIR/${OUTPOP}_Qualtemp.VCF
+		if [ ! -z $MAKEVCF ]; then
+			${BCFTOOLS} view  -i  'MIN(DP)>'$MINDP' & MIN(QUAL)>'$SNPQ' ' $MAKEVCF  > $OUTDIR/${OUTPOP}_Qualtemp.VCF
 				declare -i after=$(grep -v "^#" $OUTDIR/${OUTPOP}_Qualtemp.VCF | wc -l) 
 				declare -i lost=$(($before-$after))
 				echo "ALERT: $lost SNPs removed due to QUAL < $SNPQ and total DP < $MINDP "
@@ -604,12 +603,11 @@ task() {
 				echo "ALERT: $afterm total SNPs retained after SNP calling"
 				grep -v "^#"  $OUTDIR/${OUTPOP}.VCF | awk '{gsub("=|;", "\t", $0); print;}' \
 						| awk '{print $1,$2,$6,$9}'  >  $OUTDIR/${OUTPOP}_variants.txt
+		fi
 
-
-			if [[ ! -s $OUTDIR/${OUTPOP}_full.VCF ]] ; then
-				echo "ERROR: Variants were not filtered, $OUTDIR/${OUTPOP}_variants.txt was not produced. Check for sufficient memory"
-				exit
-			fi
+		if [[ ! -s $OUTDIR/${OUTPOP}_full.VCF ]] ; then
+			echo "ERROR: Variants were not filtered, $OUTDIR/${OUTPOP}_variants.txt was not produced. Check for sufficient memory"
+			exit
 		fi
 			rm $OUTDIR/${OUTPOP}_Qualtemp.VCF
 			rm $OUTDIR/${OUTPOP}_full.VCF
