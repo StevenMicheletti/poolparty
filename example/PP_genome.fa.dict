@@ -1,0 +1,9 @@
+@HD	VN:1.5
+@SQ	SN:Chr1	LN:3203380	M5:b396c3ffdbe3a182fce07ff15c1dce02	UR:file:/usr/local/bin/poolparty/example/PP_genome.fa
+@SQ	SN:Chr2	LN:2938620	M5:d5364421b2d808c974a1e95b7c0d9def	UR:file:/usr/local/bin/poolparty/example/PP_genome.fa
+@SQ	SN:Chr3	LN:3052780	M5:9d8d490d65137987ade1474a68c1a7e9	UR:file:/usr/local/bin/poolparty/example/PP_genome.fa
+@SQ	SN:Scaff1	LN:3621	M5:e8ff3c4f1a344f0ba7843ab09072196a	UR:file:/usr/local/bin/poolparty/example/PP_genome.fa
+@SQ	SN:Scaff2	LN:3621	M5:9e3e1deec4d28d5d253a9212ab4deb6c	UR:file:/usr/local/bin/poolparty/example/PP_genome.fa
+@SQ	SN:Scaff3	LN:3592	M5:d0950ca1354885339eac328538957ac2	UR:file:/usr/local/bin/poolparty/example/PP_genome.fa
+@SQ	SN:Scaff4	LN:3625	M5:f1e8ced03bbef14d65427ccd3ba48b25	UR:file:/usr/local/bin/poolparty/example/PP_genome.fa
+@SQ	SN:Scaff5	LN:127032	M5:2200062440e773d997207a1b70076259	UR:file:/usr/local/bin/poolparty/example/PP_genome.fa
