@@ -552,7 +552,7 @@ task() {
 
 
 	if  [[ "$skipmerge" =~(on)$ ]] ; then
-		echo "ALERT: Skipping population merge; identical poplist exists"
+		echo "ALERT: Skipping population merge; identical poplist exists. Delete poplist.txt and population bams to make new populations "
 	else
 		N=$THREADZ
 		open_sem $N
