@@ -7,4 +7,4 @@ P201_104_R2_PopB.fq.gz	2
 P202_103_R1_PopB.fq.gz	2
 P202_103_R2_PopB.fq.gz	2
 P203_97_R1_PopB.fq.gz	2
-P203s_97_R2_PopB.fq.gz	2
+P203_97_R2_PopB.fq.gz	2

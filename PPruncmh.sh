@@ -1,4 +1,4 @@
-#bin/bash!
+#!/bin/bash
 
 #PoolParty v0.81
 #PPruncmh
